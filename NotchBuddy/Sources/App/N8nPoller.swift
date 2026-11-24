@@ -257,7 +257,7 @@ final class N8nPoller: @unchecked Sendable {
 
     private func n8nLog(_ message: String) {
         let logsDir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Logs/NotchBuddy")
+            .appendingPathComponent("Logs/VoltaDock")
         try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
         let logFile = logsDir.appendingPathComponent("n8n.log")
         let f = DateFormatter(); f.dateFormat = "HH:mm:ss"

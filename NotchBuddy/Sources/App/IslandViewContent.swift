@@ -964,7 +964,7 @@ struct IntegrationCardView: View {
         case "integration_claude":
             #if APPSTORE
             // Sandboxed: can't read ~/.claude directly — check install flag set by HookServer
-            return UserDefaults.standard.bool(forKey: "coucouHooksInstalled")
+            return UserDefaults.standard.bool(forKey: "voltadockHooksInstalled")
             #else
             let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/settings.json")
             guard let data = try? Data(contentsOf: url),
@@ -973,7 +973,7 @@ struct IntegrationCardView: View {
                   let ss = hooks["SessionStart"] as? [[String: Any]] else { return false }
             return ss.contains { ($0["hooks"] as? [[String: Any]])?.contains {
                 let cmd = $0["command"] as? String
-                return cmd?.contains("NotchBuddy") == true || cmd?.contains("coucou") == true
+                return HookServer.isOwnHook(cmd)
             } ?? false }
             #endif
         case "integration_resend":  return KeychainStore.shared.get("resend-api-key") != nil
@@ -2703,7 +2703,7 @@ struct SettingsIslandView: View {
               let ss = hooks["SessionStart"] as? [[String: Any]] else { return false }
         return ss.contains { matcher in
             (matcher["hooks"] as? [[String: Any]])?.contains {
-                ($0["command"] as? String)?.contains("NotchBuddy") == true
+                HookServer.isOwnHook($0["command"] as? String)
             } ?? false
         }
     }

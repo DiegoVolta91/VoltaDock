@@ -12,12 +12,12 @@ final class HookServer: @unchecked Sendable {
     // Support directory paths
     static var supportDir: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("NotchBuddy")
+            .appendingPathComponent("VoltaDock")
     }
     static var socketPath: String {
         #if APPSTORE
         // Container home root keeps path ≤ 103 bytes (sun_path limit on macOS is 104 incl. NUL)
-        // /Users/louis/Library/Containers/fr.louisraille.Coucou/Data/nb.sock = 66 bytes ✓
+        // /Users/<user>/Library/Containers/io.github.diegovolta91.VoltaDock.AppStore/Data/nb.sock ≈ 85 bytes ✓
         return NSHomeDirectory() + "/nb.sock"
         #else
         return supportDir.appendingPathComponent("nb.sock").path
@@ -26,6 +26,19 @@ final class HookServer: @unchecked Sendable {
     // hookScriptPath is only used by the non-App Store build.
     // App Store build derives the command from the panel-selected claudeURL in buildHooksData(claudeURL:).
     static var hookScriptPath: String { supportDir.appendingPathComponent("nb-hook").path }
+
+    /// True for a hook command that this app wrote (Application Support/VoltaDock or ~/.claude/voltadock).
+    static func isOwnHook(_ cmd: String?) -> Bool {
+        guard let cmd else { return false }
+        return cmd.contains("VoltaDock") || cmd.contains("voltadock")
+    }
+
+    /// Also matches entries left by Coucou, the app VoltaDock was forked from, so that
+    /// installing VoltaDock's hooks replaces them instead of sending every event twice.
+    static func isOwnOrLegacyHook(_ cmd: String?) -> Bool {
+        guard let cmd else { return false }
+        return isOwnHook(cmd) || cmd.contains("NotchBuddy") || cmd.contains("coucou")
+    }
 
     // No approval blocking state — notch is notification-only, user answers in VS Code
 
@@ -387,6 +400,7 @@ final class HookServer: @unchecked Sendable {
 
     private func aliasProjectName(_ name: String) -> String {
         let aliases: [String: String] = [
+            "voltadock":    "VoltaDock",
             "notch-buddy":  "Notch Buddy",
             "notchbuddy":   "Notch Buddy",
             "notch_buddy":  "Notch Buddy",
@@ -430,7 +444,7 @@ final class HookServer: @unchecked Sendable {
 
     private func nbLog(_ message: String) {
         let logsDir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Logs/NotchBuddy")
+            .appendingPathComponent("Logs/VoltaDock")
         try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
         let logFile = logsDir.appendingPathComponent("nb.log")
         let formatter = DateFormatter()
@@ -482,7 +496,7 @@ final class HookServer: @unchecked Sendable {
 
     // MARK: - Outdated hook detection
 
-    /// Returns true if settings.json has a Coucou PermissionRequest hook with timeout < 120s.
+    /// Returns true if settings.json has a VoltaDock PermissionRequest hook with timeout < 120s.
     static func hooksNeedUpdate() -> Bool {
         let settingsURL = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".claude/settings.json")
@@ -496,7 +510,7 @@ final class HookServer: @unchecked Sendable {
             if let hookList = matcher["hooks"] as? [[String: Any]] {
                 for hook in hookList {
                     if let cmd = hook["command"] as? String,
-                       (cmd.contains("NotchBuddy") || cmd.contains("coucou")),
+                       HookServer.isOwnHook(cmd),
                        let timeout = hook["timeout"] as? Int,
                        timeout < 120 {
                         return true
@@ -563,7 +577,7 @@ final class HookServer: @unchecked Sendable {
         var hooks = settings["hooks"] as? [String: Any] ?? [:]
         for (event, timeout) in events {
             var existing = hooks[event] as? [[String: Any]] ?? []
-            existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains { ($0["command"] as? String)?.contains("NotchBuddy") == true || ($0["command"] as? String)?.contains("coucou") == true } ?? false }
+            existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains { HookServer.isOwnOrLegacyHook($0["command"] as? String) } ?? false }
             existing.append(["hooks": [["type": "command", "command": quotedCmd, "timeout": timeout]]])
             hooks[event] = existing
         }
@@ -582,8 +596,7 @@ final class HookServer: @unchecked Sendable {
             if var matchers = hooks[key] as? [[String: Any]] {
                 matchers.removeAll { matcher in
                     (matcher["hooks"] as? [[String: Any]])?.contains {
-                        ($0["command"] as? String)?.contains("NotchBuddy") == true ||
-                        ($0["command"] as? String)?.contains("coucou") == true
+                        HookServer.isOwnHook($0["command"] as? String)
                     } ?? false
                 }
                 if matchers.isEmpty { hooks.removeValue(forKey: key) }
@@ -603,13 +616,13 @@ final class HookServer: @unchecked Sendable {
     func installAndWriteClaudeHooksAppStore(claudeURL: URL) throws {
         let data = try buildHooksData(claudeURL: claudeURL)
 
-        // Write nb-hook (shell wrapper) + nb-hook.py (Python relay) into ~/.claude/coucou/
-        let coucouDir = claudeURL.appendingPathComponent("coucou")
-        try FileManager.default.createDirectory(at: coucouDir, withIntermediateDirectories: true)
-        let wrapperURL = coucouDir.appendingPathComponent("nb-hook")
+        // Write nb-hook (shell wrapper) + nb-hook.py (Python relay) into ~/.claude/voltadock/
+        let hookDir = claudeURL.appendingPathComponent("voltadock")
+        try FileManager.default.createDirectory(at: hookDir, withIntermediateDirectories: true)
+        let wrapperURL = hookDir.appendingPathComponent("nb-hook")
         try nbHookShellWrapper.write(to: wrapperURL, atomically: true, encoding: .utf8)
         _ = try? FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: wrapperURL.path)
-        let pyURL = coucouDir.appendingPathComponent("nb-hook.py")
+        let pyURL = hookDir.appendingPathComponent("nb-hook.py")
         try nbHookPythonAppStore.write(to: pyURL, atomically: true, encoding: .utf8)
         _ = try? FileManager.default.setAttributes([.posixPermissions: 0o755 as NSNumber], ofItemAtPath: pyURL.path)
 
@@ -620,7 +633,7 @@ final class HookServer: @unchecked Sendable {
         let backupURL = claudeURL.appendingPathComponent("settings.json.bak-\(formatter.string(from: Date()))")
         try? FileManager.default.copyItem(at: settingsURL, to: backupURL)
         try data.write(to: settingsURL, options: .atomic)
-        UserDefaults.standard.set(true, forKey: "coucouHooksInstalled")
+        UserDefaults.standard.set(true, forKey: "voltadockHooksInstalled")
     }
 
     func uninstallClaudeHooksAppStore(claudeURL: URL) throws {
@@ -632,8 +645,7 @@ final class HookServer: @unchecked Sendable {
             if var matchers = hooks[key] as? [[String: Any]] {
                 matchers.removeAll { matcher in
                     (matcher["hooks"] as? [[String: Any]])?.contains {
-                        ($0["command"] as? String)?.contains("coucou") == true ||
-                        ($0["command"] as? String)?.contains("NotchBuddy") == true
+                        HookServer.isOwnHook($0["command"] as? String)
                     } ?? false
                 }
                 if matchers.isEmpty { hooks.removeValue(forKey: key) }
@@ -643,7 +655,7 @@ final class HookServer: @unchecked Sendable {
         settings["hooks"] = hooks
         let newData = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
         try newData.write(to: settingsURL, options: .atomic)
-        UserDefaults.standard.set(false, forKey: "coucouHooksInstalled")
+        UserDefaults.standard.set(false, forKey: "voltadockHooksInstalled")
     }
 
     private func buildHooksData(claudeURL: URL) throws -> Data {
@@ -654,7 +666,7 @@ final class HookServer: @unchecked Sendable {
             settings = parsed
         }
         // Derive hook path from the panel-selected claudeURL (real ~/.claude, not container)
-        let hookPath = claudeURL.appendingPathComponent("coucou/nb-hook").path
+        let hookPath = claudeURL.appendingPathComponent("voltadock/nb-hook").path
         let quotedCmd = "/bin/sh \"\(hookPath.replacingOccurrences(of: "\"", with: "\\\""))\""
         let events: [(String, Int)] = [
             ("SessionStart", 10), ("SessionEnd", 10),
@@ -669,8 +681,7 @@ final class HookServer: @unchecked Sendable {
         for (event, timeout) in events {
             var existing = hooks[event] as? [[String: Any]] ?? []
             existing.removeAll { ($0["hooks"] as? [[String: Any]])?.contains {
-                ($0["command"] as? String)?.contains("coucou") == true ||
-                ($0["command"] as? String)?.contains("NotchBuddy") == true
+                HookServer.isOwnOrLegacyHook($0["command"] as? String)
             } ?? false }
             existing.append(["hooks": [["type": "command", "command": quotedCmd, "timeout": timeout]]])
             hooks[event] = existing
@@ -695,7 +706,7 @@ extension Notification.Name {
 
 private let nbHookShellWrapper = """
 #!/bin/sh
-# Coucou hook relay — always exits 0, never blocks Claude Code
+# VoltaDock hook relay — always exits 0, never blocks Claude Code
 HOOK_DIR="$(dirname "$0")"
 if xcode-select -p >/dev/null 2>&1; then
     out=$(/usr/bin/python3 "$HOOK_DIR/nb-hook.py" 2>/dev/null)
@@ -711,8 +722,8 @@ exit 0
 
 private let nbHookPythonGitHub = """
 #!/usr/bin/env python3
-# nb-hook.py — Coucou hook relay for Claude Code (GitHub version)
-# Reads JSON from stdin, forwards to Coucou via Unix socket, translates response.
+# nb-hook.py — VoltaDock hook relay for Claude Code (GitHub version)
+# Reads JSON from stdin, forwards to VoltaDock via Unix socket, translates response.
 import sys, json, os, socket
 
 def main():
@@ -735,11 +746,11 @@ def main():
 
     event = payload.get('hook_event_name', '')
     socket_path = os.path.expanduser(
-        '~/Library/Application Support/NotchBuddy/nb.sock'
+        '~/Library/Application Support/VoltaDock/nb.sock'
     )
 
     if event == 'PermissionRequest':
-        # Block and wait for Coucou's decision (Claude Code allows up to 120s)
+        # Block and wait for VoltaDock's decision (Claude Code allows up to 120s)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.settimeout(118)
@@ -774,7 +785,7 @@ def main():
                     sys.stdout.flush()
                     sys.exit(0)
                 elif decision == 'deny':
-                    out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from Coucou'}}}
+                    out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from VoltaDock'}}}
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)
@@ -803,7 +814,7 @@ sys.exit(0)
 
 private let nbHookPythonAppStore = """
 #!/usr/bin/env python3
-# nb-hook.py — Coucou (App Store) hook relay for Claude Code
+# nb-hook.py — VoltaDock (App Store) hook relay for Claude Code
 # Socket lives inside the sandboxed container; script runs outside the sandbox.
 import sys, json, os, socket
 
@@ -826,11 +837,11 @@ def main():
 
     event = payload.get('hook_event_name', '')
     socket_path = os.path.expanduser(
-        '~/Library/Containers/fr.louisraille.Coucou/Data/nb.sock'
+        '~/Library/Containers/io.github.diegovolta91.VoltaDock.AppStore/Data/nb.sock'
     )
 
     if event == 'PermissionRequest':
-        # Block and wait for Coucou's decision (Claude Code allows up to 120s)
+        # Block and wait for VoltaDock's decision (Claude Code allows up to 120s)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.settimeout(118)
@@ -865,7 +876,7 @@ def main():
                     sys.stdout.flush()
                     sys.exit(0)
                 elif decision == 'deny':
-                    out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from Coucou'}}}
+                    out = {'hookSpecificOutput': {'hookEventName': 'PermissionRequest', 'decision': {'behavior': 'deny', 'message': 'Denied from VoltaDock'}}}
                     sys.stdout.write(json.dumps(out) + '\\n')
                     sys.stdout.flush()
                     sys.exit(0)

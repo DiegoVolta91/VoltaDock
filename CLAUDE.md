@@ -1,6 +1,6 @@
-# Coucou — guide for AI coding agents
+# VoltaDock — guide for AI coding agents
 
-Coucou is a native macOS app: Mochi, a small animated character living in the MacBook notch, shows Claude Code sessions and a few integrations, and lets the user approve, answer, chat and drop files from the notch.
+VoltaDock (an independent project that started as a fork of Coucou by Louis Raillé) is a native macOS app, with a Windows port in `windows/`: Mochi, a small animated character living in the MacBook notch, shows Claude Code sessions and a few integrations, and lets the user approve, answer, chat and drop files from the notch.
 
 ## Where things are
 - `NotchBuddy/Sources/App/` — all Swift code. `NotchBuddy/Resources/sounds/` — the 28 WAV sounds. `NotchBuddy/project.yml` — XcodeGen project (never edit the `.xcodeproj` by hand).
@@ -21,5 +21,6 @@ cd NotchBuddy && xcodegen && xcodebuild -scheme NotchBuddy -configuration Debug 
 - Never overwrite `~/.claude/settings.json`: dated backup, merge, show the diff, write only after the user confirms.
 - Never send an email or approve a Claude Code permission without an explicit click.
 - Performance: 0 % CPU when the island is hidden.
-- Keep the bundle identifier `fr.louisraille.NotchBuddy` (Keychain items, preferences and permissions depend on it).
+- Keep the bundle identifiers `io.github.diegovolta91.VoltaDock` (Mac), `io.github.diegovolta91.VoltaDock.AppStore` (Mac App Store) and `io.github.diegovolta91.voltadock` (Windows): Keychain items, preferences and permissions depend on them. The Xcode project, scheme and `NotchBuddy/` folder keep their old internal name.
+- The Mochi character, icons, sounds and media still come from Coucou and are not MIT (see `LICENSE-ASSETS.md`): don't ship a public build with them.
 - Visual changes must match the prototype and the screenshots in `design/captures/`.

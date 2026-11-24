@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="src-tauri/icons/128x128.png" width="96" alt="Coucou icon">
+<img src="src-tauri/icons/128x128.png" width="96" alt="VoltaDock icon">
 
-# Coucou for Windows
+# VoltaDock for Windows
 
 **Mochi doesn't get a notch on a PC — so it lives at the top of your screen instead.**
 
@@ -18,6 +18,8 @@ Approve Claude Code permissions, watch your session work, drop a file, chat with
 <img src="screenshots/greeting.png" width="640" alt="Mochi waving hello at launch">
 
 ---
+
+> **Note:** VoltaDock started as a fork of [Coucou](https://github.com/Louis-CFM/coucou). The installer, window and app id already say VoltaDock, but the Windows code still uses the old `coucou` name for its folders (`%APPDATA%\Coucou`, `%LOCALAPPDATA%\Coucou`), the hook relay (`coucou-hook.exe`) and the crate names. Those move to `voltadock` in a follow-up.
 
 ## Install
 
