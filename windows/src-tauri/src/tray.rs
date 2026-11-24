@@ -1,4 +1,4 @@
-// Notification-area icon: Open, Settings, Pause, Quit.
+// Notification-area icon: Open, Focus, Settings, Pause, Quit.
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -8,13 +8,23 @@ use crate::island::WINDOW_LABEL;
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "Abrir Coucou", true, None::<&str>)?;
+    let focus = MenuItem::with_id(
+        app,
+        "focus",
+        "Empezar 25 min de enfoque",
+        true,
+        None::<&str>,
+    )?;
     let settings = MenuItem::with_id(app, "settings", "Ajustes…", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pausar", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
 
-    let menu = Menu::with_items(app, &[&open, &sep1, &settings, &pause, &sep2, &quit])?;
+    let menu = Menu::with_items(
+        app,
+        &[&open, &focus, &sep1, &settings, &pause, &sep2, &quit],
+    )?;
 
     let mut builder = TrayIconBuilder::with_id("coucou")
         .tooltip("Coucou")

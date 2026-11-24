@@ -100,6 +100,11 @@ struct IslandContainer: View {
 
             CountdownBar(state: state, islandW: islandWidth)
 
+            // Focus block countdown, visible while the island is folded away.
+            if state.mode == .compact {
+                FocusCompactBar(islandW: islandWidth, islandH: islandHeight)
+            }
+
             Group {
                 if state.mode == .compact {
                     CompactMiniGrid(state: state)

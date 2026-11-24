@@ -21,6 +21,8 @@ import { h } from "../views/dom";
 import { IslandStateMachine } from "./fsm";
 import { releaseApproval } from "./hooks";
 import { continueSession } from "../core/panels";
+import { Today } from "../core/today";
+import { buildFocusBar } from "../views/today";
 
 const BOT_OVERHANG = 40;
 /** Same margin as the Rust hit test (src-tauri/src/island.rs). */
@@ -47,6 +49,7 @@ export class Island {
   private greetingCanvas!: HTMLCanvasElement;
   private miniGrid!: HTMLElement;
   private countdown!: HTMLElement;
+  private focusBar = buildFocusBar();
   private wakeStrip!: HTMLElement;
 
   private header!: ViewHost;
@@ -100,6 +103,18 @@ export class Island {
     State.subscribe(() => {
       this.dirty = true;
       this.ensureRunning();
+      // An alert card the user navigated away from has been seen.
+      Today.viewChanged();
+    });
+  }
+
+  /** Hoy: reminders and focus blocks. Started after launch so the greeting goes first. */
+  startToday() {
+    Today.start({
+      showAlert: () => this.alert("reminder"),
+      collapse: () => this.collapse(),
+      emote: (name) => this.engine.triggerEmote(name),
+      sound: (name) => Sound.play(name),
     });
   }
 
@@ -230,6 +245,7 @@ export class Island {
       this.botCanvas,
       this.miniGrid,
       this.countdown,
+      this.focusBar.el,
     );
 
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -921,6 +937,9 @@ export class Island {
         pruneMiniBots();
       }
     }
+
+    // Focus block countdown, visible while the island is folded away.
+    this.focusBar.sync(State.mode === "compact", islandSize("compact", State.view).w);
 
     syncMiniBotStates(State.tasks);
     this.engine.setState(State.effectiveState);
