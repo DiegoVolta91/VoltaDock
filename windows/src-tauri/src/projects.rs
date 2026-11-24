@@ -82,7 +82,7 @@ fn inspect(path: &Path) -> Option<Project> {
     let (mut ahead, mut behind, mut changes) = (0u32, 0u32, 0u32);
     for line in status.lines() {
         if let Some(head) = line.strip_prefix("# branch.head ") {
-            branch = if head == "(detached)" { "HEAD suelta".into() } else { head.to_string() };
+            branch = if head == "(detached)" { crate::i18n::m().detached_head.into() } else { head.to_string() };
         } else if let Some(ab) = line.strip_prefix("# branch.ab ") {
             // "+2 -1"
             let mut parts = ab.split_whitespace();

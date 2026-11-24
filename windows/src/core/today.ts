@@ -3,6 +3,7 @@
 // Port of TodayStore.swift — keep the two in step.
 
 import { parseQuickAdd } from "./quickadd";
+import { tr } from "../i18n";
 import { State } from "./state";
 
 export interface TodayItem {
@@ -81,15 +82,15 @@ export function clock(ms: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
-/** "14:30", "Mañana 09:00", "jue 09:00". */
+/** "14:30", "Mañana 09:00", "jue 09:00" (in the current language). */
 export function dueLabel(ms: number, now = Date.now()): string {
   const d = new Date(ms);
-  const time = d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  const time = d.toLocaleTimeString(tr.tag, { hour: "2-digit", minute: "2-digit" });
   if (dayKey(ms) === dayKey(now)) return time;
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  if (dayKey(ms) === dayKey(tomorrow.getTime())) return `Mañana ${time}`;
-  return `${d.toLocaleDateString("es", { weekday: "short" })} ${time}`;
+  if (dayKey(ms) === dayKey(tomorrow.getTime())) return `${tr.today.tomorrow} ${time}`;
+  return `${d.toLocaleDateString(tr.tag, { weekday: "short" })} ${time}`;
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -167,7 +168,7 @@ class TodayStore {
   // ── Items ──────────────────────────────────────────────────────────────────
 
   add(raw: string): TodayItem | null {
-    const parsed = parseQuickAdd(raw);
+    const parsed = parseQuickAdd(raw, new Date(), { timer: tr.today.timerTitle, reminder: tr.today.reminderTitle });
     if (!parsed) return null;
     const item: TodayItem = {
       id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,

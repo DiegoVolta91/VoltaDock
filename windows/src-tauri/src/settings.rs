@@ -24,6 +24,13 @@ pub struct Settings {
     /// the first of the usual places that exists.
     #[serde(default)]
     pub projects_root: String,
+    /// Interface language: "es" (default), "en", or "system" to follow Windows.
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "es".into()
 }
 
 fn default_model() -> String {
@@ -48,6 +55,7 @@ impl Default for Settings {
             hooks_installed: false,
             model: default_model(),
             projects_root: String::new(),
+            language: default_language(),
         }
     }
 }

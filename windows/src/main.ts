@@ -8,6 +8,7 @@ import { Island } from "./island/island";
 import { registerHookHandlers } from "./island/hooks";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
 import { Today } from "./core/today";
+import { setLanguage } from "./i18n";
 
 async function main() {
   const root = document.getElementById("root");
@@ -21,6 +22,8 @@ async function main() {
   if (boot) {
     State.settings = { ...State.settings, ...boot.settings };
   }
+  // The island was built in the system language; redraw it if the setting says otherwise.
+  if (setLanguage(State.settings.language)) island.relocalize();
   island.applySettings();
   State.loadIntegrationTasks();
 
@@ -61,6 +64,7 @@ async function main() {
   // The settings window writes preferences; apply them here without a restart.
   await onEvent<Settings>("settings-changed", (s) => {
     State.settings = { ...State.settings, ...s };
+    if (setLanguage(State.settings.language)) island.relocalize();
     island.applySettings();
     State.loadIntegrationTasks();
     void refreshConfigured();

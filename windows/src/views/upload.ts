@@ -7,6 +7,7 @@
 import { h, clear } from "./dom";
 import { State } from "../core/state";
 import type { ViewActions, ViewHost } from "./views";
+import { tr } from "../i18n";
 
 /** Dashed rounded rect drawn as SVG so the dashes can march like on macOS. */
 function dashedFrame(): SVGSVGElement {
@@ -29,11 +30,11 @@ function dashedFrame(): SVGSVGElement {
 
 export function buildUpload(): ViewHost {
   const frame = dashedFrame();
-  const title = h("div", { class: "drop-title", text: "Suelta tus archivos aquí" });
+  const title = h("div", { class: "drop-title", text: tr.upload.dropHere });
   const tags = h(
     "div",
     { class: "drop-tags" },
-    ...["PDF", "Imágenes", "Código", "Docs"].map((t) => h("span", { text: t })),
+    ...tr.upload.chips.map((t) => h("span", { text: t })),
   );
   const card = h(
     "div",
@@ -70,8 +71,8 @@ export function buildUploading(): ViewHost {
       const done = State.uploadProgress >= 0.999;
       const pct = Math.round(State.uploadProgress * 100);
       label.textContent = done
-        ? `✓  ${State.droppedFile?.name ?? "Archivo"}`
-        : `Subiendo ${State.droppedFile?.name ?? "archivo"}`;
+        ? `✓  ${State.droppedFile?.name ?? tr.upload.fileCap}`
+        : tr.upload.uploading(State.droppedFile?.name ?? tr.upload.file);
       label.classList.toggle("done", done);
       percent.textContent = done ? "" : `${pct} %`;
       const w = State.uploadProgress * 526;
@@ -85,18 +86,18 @@ export function buildUploading(): ViewHost {
 
 export function buildChoose(actions: ViewActions): ViewHost {
   const title = h("div", { class: "title" });
-  const sub = h("div", { class: "sub", text: "¿Qué quieres hacer con él?" });
+  const sub = h("div", { class: "sub", text: tr.upload.whatToDo });
   const row = h(
     "div",
     { class: "actions" },
     h("button", {
       class: "btn primary",
-      text: "Hacer una pregunta",
+      text: tr.upload.ask,
       onclick: () => actions.setView("prompt"),
     }),
     h("button", {
       class: "btn secondary",
-      text: "Cancelar",
+      text: tr.common.cancel,
       onclick: () => actions.setView(State.defaultView()),
     }),
   );
@@ -115,8 +116,8 @@ export function buildChoose(actions: ViewActions): ViewHost {
     sync() {
       clear(title);
       title.append(
-        h("b", { text: State.droppedFile?.name ?? "archivo" }),
-        document.createTextNode(" está listo."),
+        h("b", { text: State.droppedFile?.name ?? tr.upload.file }),
+        document.createTextNode(tr.upload.isReady),
       );
     },
   };

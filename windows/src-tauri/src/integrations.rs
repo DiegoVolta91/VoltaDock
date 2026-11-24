@@ -135,9 +135,9 @@ fn is_new(key: &'static str, id: &str) -> bool {
 
 fn status_error(code: u16, unauthorised_hint: &str) -> String {
     match code {
-        401 => "Clave de API no válida (401)".into(),
+        401 => crate::i18n::m().invalid_key_401.into(),
         403 => unauthorised_hint.into(),
-        _ => format!("Error de API {code}"),
+        _ => crate::i18n::fill(crate::i18n::m().api_error, &[("code", &code.to_string())]),
     }
 }
 
@@ -180,7 +180,7 @@ async fn poll_stripe(app: AppHandle) {
             emit(&app, IntegrationUpdate {
                 id: "integration_stripe",
                 data: json!({}),
-                error: Some(status_error(code, "Usa una clave secreta (sk_live_…, no pk_live_…)")),
+                error: Some(status_error(code, crate::i18n::m().stripe_secret_key)),
                 event: None,
             });
             return;
@@ -189,7 +189,7 @@ async fn poll_stripe(app: AppHandle) {
             emit(&app, IntegrationUpdate {
                 id: "integration_stripe",
                 data: json!({}),
-                error: Some(format!("Sin conexión: {e}")),
+                error: Some(crate::i18n::fill(crate::i18n::m().no_connection, &[("err", &e.to_string())])),
                 event: None,
             });
             return;
@@ -280,7 +280,7 @@ async fn poll_github(app: AppHandle) {
         emit(&app, IntegrationUpdate {
             id: "integration_github",
             data: json!({}),
-            error: Some(status_error(response.status().as_u16(), "Al token le faltan permisos")),
+            error: Some(status_error(response.status().as_u16(), crate::i18n::m().token_scope)),
             event: None,
         });
         return;
@@ -338,7 +338,7 @@ async fn poll_vercel(app: AppHandle) {
         emit(&app, IntegrationUpdate {
             id: "integration_vercel",
             data: json!({}),
-            error: Some(status_error(response.status().as_u16(), "El token no tiene acceso")),
+            error: Some(status_error(response.status().as_u16(), crate::i18n::m().token_access)),
             event: None,
         });
         return;
@@ -410,7 +410,7 @@ async fn poll_resend(app: AppHandle) {
         emit(&app, IntegrationUpdate {
             id: "integration_resend",
             data: json!({}),
-            error: Some(status_error(response.status().as_u16(), "La clave no tiene acceso")),
+            error: Some(status_error(response.status().as_u16(), crate::i18n::m().key_access)),
             event: None,
         });
         return;
@@ -472,7 +472,7 @@ async fn poll_notion(app: AppHandle) {
         emit(&app, IntegrationUpdate {
             id: "integration_notion",
             data: json!({}),
-            error: Some(status_error(response.status().as_u16(), "La integración no tiene acceso")),
+            error: Some(status_error(response.status().as_u16(), crate::i18n::m().integration_access)),
             event: None,
         });
         return;
@@ -496,7 +496,7 @@ fn parse_notion_page(obj: &Value) -> Option<Value> {
     let id = obj.get("id")?.as_str()?;
     let is_database = obj.get("object").and_then(Value::as_str) == Some("database");
 
-    let mut title = "Sin título".to_string();
+    let mut title = crate::i18n::m().untitled.to_string();
     if is_database {
         if let Some(text) = obj
             .get("title")
@@ -559,7 +559,7 @@ async fn poll_calcom(app: AppHandle) {
         emit(&app, IntegrationUpdate {
             id: "integration_calcom",
             data: json!({}),
-            error: Some(status_error(response.status().as_u16(), "La clave no tiene acceso")),
+            error: Some(status_error(response.status().as_u16(), crate::i18n::m().key_access)),
             event: None,
         });
         return;

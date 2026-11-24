@@ -4,6 +4,7 @@ mod claude;
 mod files;
 mod hooks;
 mod hotkey;
+mod i18n;
 mod integrations;
 mod island;
 mod log;
@@ -72,6 +73,12 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         *current = settings.clone();
         (screen_changed, autostart_changed)
     };
+    if i18n::apply(&settings.language) {
+        tray::relabel(&app);
+        if let Some(win) = app.get_webview_window("settings") {
+            let _ = win.set_title(i18n::m().settings_title);
+        }
+    }
     if let Err(err) = settings::save(&settings) {
         eprintln!("[coucou] could not save settings: {err}");
     }
@@ -238,8 +245,10 @@ fn continue_session(session_id: String) -> bool {
         return false;
     }
     // The id was validated as a UUID by find_transcript, so it is plain hex and dashes.
+    let t = i18n::m();
     let body = format!(
-        "@echo off\r\ntitle Claude - continuar\r\nclaude --resume {session_id} \"Continua donde te quedaste\"\r\n"
+        "@echo off\r\ntitle {}\r\nclaude --resume {session_id} \"{}\"\r\n",
+        t.resume_title, t.resume_prompt,
     );
     if std::fs::create_dir_all(settings::local_dir()).is_err() || std::fs::write(&script, body).is_err() {
         return false;
@@ -489,7 +498,7 @@ fn create_settings_window(app: &AppHandle) {
     let url = settings_page_url(app);
     match WebviewWindowBuilder::new(app, "settings", url)
         .additional_browser_args(BROWSER_ARGS)
-        .title("Ajustes — Coucou")
+        .title(i18n::m().settings_title)
         .inner_size(560.0, 680.0)
         .min_inner_size(460.0, 480.0)
         .resizable(true)
@@ -528,6 +537,7 @@ fn open_settings_window(app: AppHandle) {
 
 pub fn run() {
     let loaded = settings::load();
+    i18n::apply(&loaded.language);
     let gate = Arc::new(PollGate::new());
 
     tauri::Builder::default()

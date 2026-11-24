@@ -6,6 +6,7 @@
 // exactly as on macOS, because this canvas draws its own.
 
 import { State } from "../core/state";
+import { tr } from "../i18n";
 import {
   USC, eIn, eInOut, eOut, lerp, progressAt,
   type UploadEyeShape, type UploadFrame,
@@ -174,10 +175,10 @@ export class UploadCanvas {
   private drawDropText(ctx: CanvasRenderingContext2D, f: UploadFrame) {
     ctx.save();
     ctx.globalAlpha = f.textAlpha;
-    text(ctx, "Drop your files here", USC.TEXT_X, USC.TEXT_Y - 4, `500 13px ${FONT}`, "#D5D7DB");
+    text(ctx, tr.upload.dropHere, USC.TEXT_X, USC.TEXT_Y - 4, `500 13px ${FONT}`, "#D5D7DB");
 
     let cx = USC.TEXT_X;
-    for (const chip of ["PDF", "Images", "Code", "Docs"]) {
+    for (const chip of tr.upload.chips) {
       // The macOS port measures chips the same rough way, so the row lines up.
       const w = chip.length * 6.5 + 16;
       ctx.fillStyle = "rgba(255,255,255,0.07)";
@@ -200,8 +201,8 @@ export class UploadCanvas {
     const by = USC.BAR_Y;
     const barLen = (x1 - x0) * f.barReveal;
 
-    const name = State.droppedFile?.name ?? "file";
-    text(ctx, `Uploading ${name}`, x0, by - 30, `500 12.5px ${FONT}`, "#A9ADB5");
+    const name = State.droppedFile?.name ?? tr.upload.file;
+    text(ctx, tr.upload.uploading(name), x0, by - 30, `500 12.5px ${FONT}`, "#A9ADB5");
 
     if (f.check > 0) {
       ctx.save();
@@ -272,19 +273,19 @@ export class UploadCanvas {
     ctx.globalAlpha = f.chooseAlpha;
     ctx.translate(0, (1 - f.chooseAlpha) * 4);
 
-    const name = State.droppedFile?.name ?? "file";
-    text(ctx, `${name} is ready.`, 114, 80, `600 14px ${FONT}`, "#F5F6F8");
-    text(ctx, "What do you want to do with it?", 114, 100, `400 12.5px ${FONT}`, "#9398A1");
+    const name = State.droppedFile?.name ?? tr.upload.file;
+    text(ctx, tr.upload.ready(name), 114, 80, `600 14px ${FONT}`, "#F5F6F8");
+    text(ctx, tr.upload.whatToDo, 114, 100, `400 12.5px ${FONT}`, "#9398A1");
 
     ctx.fillStyle = "#F5F6F8";
     rr(ctx, 114, 113, 168, 26, 13);
     ctx.fill();
-    text(ctx, "Ask a question about it", 198, 126, `500 12.5px ${FONT}`, "#0B0C0E", "center");
+    text(ctx, tr.upload.ask, 198, 126, `500 12.5px ${FONT}`, "#0B0C0E", "center");
 
     ctx.fillStyle = "rgba(255,255,255,0.09)";
     rr(ctx, 290, 113, 120, 26, 13);
     ctx.fill();
-    text(ctx, "Cancel", 350, 126, `500 12.5px ${FONT}`, "#F1F2F4", "center");
+    text(ctx, tr.common.cancel, 350, 126, `500 12.5px ${FONT}`, "#F1F2F4", "center");
     ctx.restore();
   }
 

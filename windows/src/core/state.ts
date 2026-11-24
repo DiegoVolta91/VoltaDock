@@ -3,6 +3,7 @@
 import type { BotEmoteName, BotStateName, IslandMode, IslandViewName } from "./layout";
 import type { EyeShape } from "../mochi/engine";
 import type { ProjectDto, UsageDto } from "./bridge";
+import type { Language } from "../i18n";
 
 export type AgentSource = "claudeCode" | "n8n";
 export type PillBadge = "approval" | "finished" | "error";
@@ -32,10 +33,13 @@ export interface SessionInfo {
   status: "working" | "finished" | "ended" | "waiting" | "limit";
   /** Latest prompt while it works, the closing summary once it stops. */
   detail: string;
-  /** Why it is waiting for you ("Pide permiso"…); only set while `waiting`. */
-  note?: string;
+  /** Why it is waiting for you; only set while `waiting`. Translated when shown. */
+  note?: SessionNote;
   lastSeen: number;
 }
+
+export type SessionNote = "permission" | "limit" | "answer" | "error";
+const SESSION_NOTES: readonly string[] = ["permission", "limit", "answer", "error"];
 
 const SESSIONS_KEY = "coucou.sessions";
 const MAX_SESSIONS = 2;
@@ -43,7 +47,11 @@ const MAX_SESSIONS = 2;
 function loadSessions(): SessionInfo[] {
   try {
     const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? "[]");
-    return Array.isArray(raw) ? (raw as SessionInfo[]).slice(0, MAX_SESSIONS) : [];
+    if (!Array.isArray(raw)) return [];
+    // Older builds stored the note as Spanish text: drop it, the detail shows instead.
+    return (raw as SessionInfo[]).slice(0, MAX_SESSIONS).map((s) =>
+      s.note && !SESSION_NOTES.includes(s.note) ? { ...s, note: undefined } : s,
+    );
   } catch {
     return [];
   }
@@ -126,6 +134,8 @@ export interface Settings {
   model: string;
   /** Folder whose git repositories the Proyectos panel lists; empty = automatic. */
   projectsRoot: string;
+  /** Interface language: "es" (default), "en", or "system" to follow Windows. */
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -141,6 +151,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hooksInstalled: false,
   model: "claude-opus-5",
   projectsRoot: "",
+  language: "es",
 };
 
 type Listener = () => void;
