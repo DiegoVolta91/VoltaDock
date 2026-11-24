@@ -1,4 +1,4 @@
-# Contributing to Coucou
+# Contributing to VoltaDock
 
 Thanks for wanting to help Mochi grow up! 🫶
 
