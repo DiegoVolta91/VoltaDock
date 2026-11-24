@@ -7,6 +7,7 @@ import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
 import { registerHookHandlers } from "./island/hooks";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
+import { Today } from "./core/today";
 
 async function main() {
   const root = document.getElementById("root");
@@ -42,6 +43,11 @@ async function main() {
         setPaused(false);
         island.alert(State.defaultView());
         break;
+      case "focus":
+        setPaused(false);
+        Today.startFocus();
+        island.reveal();
+        break;
       case "pause":
         setPaused(!State.paused);
         if (State.paused) island.fsm.forceHidden();
@@ -64,6 +70,7 @@ async function main() {
   registerIntegrationHandlers(island);
 
   island.launch();
+  island.startToday();
 
   // In a plain browser there is no wake strip behind the cursor: make the whole
   // page wake the island so the visuals can be checked with `npm run dev`.

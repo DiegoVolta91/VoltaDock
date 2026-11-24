@@ -144,6 +144,11 @@ final class IslandWindowController: NSWindowController {
                     self.islandPanel.makeKey()
                 }
             }
+
+        // Other text fields (Today quick add) ask for the keyboard explicitly.
+        NotificationCenter.default.addObserver(forName: .islandWantsKey, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.islandPanel.makeKey() }
+        }
     }
 
     // MARK: - FSM wiring

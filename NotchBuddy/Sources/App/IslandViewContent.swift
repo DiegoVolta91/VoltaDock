@@ -25,6 +25,7 @@ struct IslandViewContent: View {
         case .note:      NoteView(state: state)
         case .settings:  SettingsIslandView(state: state)
         case .greeting:  EmptyView()  // GreetingCanvasView overlaid in IslandRootView
+        case .reminder:  TodayAlertView()
         }
     }
 }
@@ -139,6 +140,9 @@ struct OverviewView: View {
             NSWorkspace.shared.open(URL(string: "https://notion.so")!)
         case "integration_calcom":
             NSWorkspace.shared.open(URL(string: "https://app.cal.com/bookings")!)
+        case "integration_today":
+            // Nothing to open outside: ↗ shows the full list instead.
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showingN8nDetail = true }
         default:
             // Non-integration real tasks
             if task.source == .n8n {
@@ -979,6 +983,7 @@ struct IntegrationCardView: View {
         case "integration_stripe":  return KeychainStore.shared.get("stripe-api-key") != nil
         case "integration_notion":  return KeychainStore.shared.get("notion-api-key") != nil
         case "integration_calcom":  return KeychainStore.shared.get("calcom-api-key") != nil
+        case "integration_today":   return true
         default: return false
         }
     }
@@ -1041,7 +1046,9 @@ struct IntegrationCardView: View {
     }
 
     var body: some View {
-        if showingDetail && n8nHasActivity {
+        if task.id == "integration_today" {
+            TodayCardView(showingDetail: $showingDetail)
+        } else if showingDetail && n8nHasActivity {
             N8nDetailView(task: task) {
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showingDetail = false }
             }

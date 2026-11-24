@@ -1532,3 +1532,271 @@ input[type="range"]::-webkit-slider-thumb {
 .usage-bar.today {
   background: #22c55e;
 }
+
+/* ── Hoy: focus timer, to-dos and reminders (views/today.ts) ───────────────── */
+
+.today-host {
+  height: 100%;
+}
+
+.today-card {
+  gap: 6px;
+  padding-top: 10px;
+}
+
+.today-summary {
+  border: 0;
+  background: transparent;
+  font: 400 11px var(--font);
+  color: var(--dim-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  cursor: default;
+}
+
+.today-summary:hover {
+  color: var(--ink);
+}
+
+.today-focus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  min-width: 0;
+}
+
+.today-clock {
+  font: 600 17px var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.today-caption {
+  font: 500 10.5px var(--font);
+  white-space: nowrap;
+}
+
+.today-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.today-chip {
+  --chip-bg: rgba(255, 255, 255, 0.1);
+  --chip-bg-hover: rgba(255, 255, 255, 0.2);
+  height: 20px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 500 10.5px var(--font);
+  color: #c5c8cd;
+  background: var(--chip-bg);
+  cursor: default;
+  transition: transform 0.08s ease-out, background 0.12s ease-out;
+}
+
+.today-chip.icon {
+  padding: 0 6px;
+}
+
+.today-chip:hover {
+  background: var(--chip-bg-hover);
+}
+
+.today-chip:active {
+  transform: scale(0.94);
+}
+
+.today-add {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  margin-left: -4px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: text;
+}
+
+.today-add-icon {
+  display: grid;
+  place-items: center;
+  width: 12px;
+  color: var(--dim-3);
+}
+
+.today-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #c5c8cd;
+  font: 400 11px var(--font);
+  cursor: text;
+}
+
+.today-input::placeholder {
+  color: var(--dim-3);
+}
+
+.today-flash {
+  position: absolute;
+  left: 26px;
+  font: 500 11px var(--font);
+  color: var(--green-2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-out;
+}
+
+.today-add.flash:not(.typing) .today-flash {
+  opacity: 1;
+}
+
+.today-add.flash:not(.typing) .today-input::placeholder {
+  color: transparent;
+}
+
+.today-add.flash:not(.typing) .today-add-icon {
+  color: var(--green-2);
+}
+
+.today-list {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Clear of Mochi, like every other card. */
+  padding: 10px 12px 6px 100px;
+}
+
+.today-list-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 24px 0 8px;
+  font: 600 12px var(--font);
+}
+
+.today-list-head b {
+  font: 600 12px var(--font);
+  color: var(--ink);
+}
+
+.today-rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  margin-top: 4px;
+}
+
+.today-rows::-webkit-scrollbar {
+  display: none;
+}
+
+.today-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.today-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.today-check {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 50%;
+  border: 1.2px solid var(--dim-5);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: #000;
+  cursor: default;
+}
+
+.today-check.on {
+  border-color: var(--green-2);
+  background: var(--green-2);
+}
+
+.today-text {
+  font: 400 11px var(--font);
+  color: #c5c8cd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.today-text.done {
+  color: var(--dim-4);
+  text-decoration: line-through;
+}
+
+.today-due {
+  font: 400 9.5px var(--font);
+  color: var(--dim-2);
+  white-space: nowrap;
+}
+
+.today-del {
+  border: 0;
+  background: transparent;
+  color: var(--dim-3);
+  display: grid;
+  place-items: center;
+  visibility: hidden;
+  cursor: default;
+}
+
+.today-row:hover .today-del {
+  visibility: visible;
+}
+
+.today-empty {
+  font: 400 11px var(--font);
+  color: var(--dim-3);
+  padding: 8px 2px;
+}
+
+.today-alert-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Focus countdown along the bottom of the compact island. */
+#focus-bar {
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+}
+
+#focus-bar i {
+  display: block;
+  height: 2px;
+  width: 0;
+  border-radius: 2px;
+  transition: width 1s linear;
+}

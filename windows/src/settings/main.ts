@@ -262,6 +262,8 @@ interface IntegrationDef {
   color: string;
   /** Credential Manager keys, in the order they are shown. */
   fields: { key: string; label: string; placeholder: string; secret: boolean }[];
+  /** Shown instead of key fields for integrations that need none. */
+  note?: string;
 }
 
 const INTEGRATIONS: IntegrationDef[] = [
@@ -282,6 +284,9 @@ const INTEGRATIONS: IntegrationDef[] = [
     fields: [{ key: "notion-api-key", label: "Token de integración", placeholder: "ntn_…", secret: true }] },
   { id: "integration_calcom", name: "Cal.com", color: "#C9956A",
     fields: [{ key: "calcom-api-key", label: "Clave de API", placeholder: "cal_…", secret: true }] },
+  // Local only: nothing to configure, it just needs a slot.
+  { id: "integration_today", name: "Hoy", color: "#2DD4BF", fields: [],
+    note: "Enfoque de 25 min, tareas y recordatorios. Se guarda solo en este PC." },
 ];
 
 const MAX_ACTIVE = 4;
@@ -341,6 +346,8 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
         ),
       );
     }
+
+    if (def.note) rows.append(h("div", { class: "hint", style: "padding-top:5px", text: def.note }));
 
     list.append(
       h("div", { style: "display:flex;gap:12px;align-items:flex-start" },
