@@ -19,7 +19,7 @@ Approve Claude Code permissions, watch your session work, drop a file, chat with
 
 ---
 
-> **Note:** VoltaDock started as a fork of [Coucou](https://github.com/Louis-CFM/coucou). The installer, window and app id already say VoltaDock, but the Windows code still uses the old `coucou` name for its folders (`%APPDATA%\Coucou`, `%LOCALAPPDATA%\Coucou`), the hook relay (`coucou-hook.exe`) and the crate names. Those move to `voltadock` in a follow-up.
+> **Note:** VoltaDock started as a fork of [Coucou](https://github.com/Louis-CFM/coucou) and is now independent. Upgrading from a build that still used the old name moves your settings, inbox and saved keys to the new `VoltaDock` locations automatically; the only manual step is clicking **Install hooks…** once more so Claude Code points to `voltadock-hook.exe`.
 
 ## Install
 
@@ -46,7 +46,7 @@ installs for the current user only — no admin prompt.
 | Click Mochi | It gets annoyed. Three times in a row and it goes dizzy |
 | Rest the pointer on Mochi for two seconds | Hearts |
 | Drag a file onto the island | Mochi turns into a box, swallows it, then offers to answer questions about it |
-| Press on the island (not on a button) and drag | It moves anywhere, on any display, and stays there. In the lower half of a display it opens upwards; dropped against the top edge it sticks to it |
+| Press on the island (not on a button) and drag it towards an edge | It docks to the nearest edge — top, bottom, left or right — of any display, and stays there. It opens away from that edge; dropped at the top centre of the main display it goes back to the notch-style default |
 | `Esc` | Closes the island |
 | Tray icon | Open, Settings…, Back to top centre, Pause, Quit |
 
@@ -61,13 +61,13 @@ your integrations sit in the coloured pills next to Mochi.
 Open **Settings… → Claude Code → Install hooks…**. You get the exact diff of what
 will change in `%USERPROFILE%\.claude\settings.json`, the path of the dated backup
 that will be taken, and nothing is written until you click. Your own hooks are
-never touched, and uninstalling removes only Coucou's entries.
+never touched, and uninstalling removes only VoltaDock's entries.
 
-The relay is a tiny executable, `coucou-hook.exe`, copied to
-`%LOCALAPPDATA%\Coucou\bin\` at launch. It is given 300 ms to reach Coucou and
+The relay is a tiny executable, `voltadock-hook.exe`, copied to
+`%LOCALAPPDATA%\VoltaDock\bin\` at launch. It is given 300 ms to reach VoltaDock and
 exits cleanly if the app is closed, slow or crashed — **a Claude Code session is
-never blocked or slowed down by Coucou.** If nobody answers a permission request
-in time, Coucou stays quiet and Claude Code asks in the terminal as usual.
+never blocked or slowed down by VoltaDock.** If nobody answers a permission request
+in time, VoltaDock stays quiet and Claude Code asks in the terminal as usual.
 
 It works from any terminal — Windows Terminal, PowerShell, VS Code, Git Bash.
 
@@ -77,7 +77,7 @@ It works from any terminal — Windows Terminal, PowerShell, VS Code, Git Bash.
 Credential Manager**, never on disk and never in the interface — the island can
 only ask whether a key exists. Same for every integration key.
 
-No telemetry. The only network requests Coucou makes are to the services you
+No telemetry. The only network requests VoltaDock makes are to the services you
 configure yourself.
 
 ## Build it yourself
@@ -102,11 +102,11 @@ otherwise needs a real drag from Explorer to see. Neither page ships in the app.
 workflow publishes:
 
 ```
-Coucou-Windows-X.Y.Z-setup.exe    the versioned installer
-Coucou-Windows-setup.exe          the same file under the rolling name
+VoltaDock-Windows-X.Y.Z-setup.exe    the versioned installer
+VoltaDock-Windows-setup.exe          the same file under the rolling name
 ```
 
-Installing is optional — `target/release/coucou.exe` runs on its own. There is no
+Installing is optional — `target/release/voltadock.exe` runs on its own. There is no
 window in the taskbar and no console: the island at the top of the screen and the
 Mochi in the notification area are the whole app, and Quit lives in its menu.
 
@@ -130,20 +130,20 @@ windows/
     views/             every island view
     settings/          the settings window
   src-tauri/           Rust backend: window, named pipe, Claude API, pollers
-  hook/                coucou-hook.exe, the Claude Code relay
+  hook/                voltadock-hook.exe, the Claude Code relay
   scripts/             icon generator
 ```
 
 ### Log
 
-`%LOCALAPPDATA%\Coucou\coucou.log` — hook events, permission decisions, poller
+`%LOCALAPPDATA%\VoltaDock\voltadock.log` — hook events, permission decisions, poller
 problems. It stays on your machine.
 
 ## What's different from the Mac version
 
 - No notch, so the island lives at the top centre of the screen and retracts into
-  the top edge instead of hiding in a notch. It can also be dragged anywhere; away
-  from the top edge it sleeps as a small black handle. Settings and the tray menu
+  the top edge instead of hiding in a notch. It can also be dragged to any edge of any
+  display; away from the top centre it sleeps as a small black handle on that edge. Settings and the tray menu
   bring it back to the top centre.
 - Permission approval works from **any** terminal; the Mac build only listens to
   VS Code sessions.

@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter};
 
 use crate::island::WINDOW_LABEL;
 
-const TRAY_ID: &str = "coucou";
+const TRAY_ID: &str = "voltadock";
 
 /// The menu in the current language; rebuilt by `relabel` when it changes.
 fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {

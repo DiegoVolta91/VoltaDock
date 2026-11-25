@@ -1,6 +1,7 @@
-// Coucou for Windows — app wiring and the commands the island calls.
+// VoltaDock for Windows — app wiring and the commands the island calls.
 
 mod claude;
+mod docpack;
 mod files;
 mod hooks;
 mod hotkey;
@@ -8,6 +9,7 @@ mod i18n;
 mod integrations;
 mod island;
 mod log;
+mod migrate;
 mod pipe;
 mod projects;
 mod remote;
@@ -73,8 +75,8 @@ fn save_settings(app: AppHandle, shared: State<Shared>, mut settings: Settings) 
         // Where the island sits is Rust's to decide (drag, reset): a window
         // holding an older copy must not put it back.
         settings.dock = current.dock.clone();
-        settings.dock_x = current.dock_x;
-        settings.dock_y = current.dock_y;
+        settings.dock_edge = current.dock_edge.clone();
+        settings.dock_pos = current.dock_pos;
         settings.dock_monitor = current.dock_monitor.clone();
         let screen_changed = current.screen != settings.screen;
         let autostart_changed = current.autostart != settings.autostart;
@@ -92,13 +94,13 @@ fn save_settings(app: AppHandle, shared: State<Shared>, mut settings: Settings) 
         }
     }
     if let Err(err) = settings::save(&settings) {
-        eprintln!("[coucou] could not save settings: {err}");
+        eprintln!("[voltadock] could not save settings: {err}");
     }
     if autostart_changed {
         let manager = app.autolaunch();
         let result = if settings.autostart { manager.enable() } else { manager.disable() };
         if let Err(err) = result {
-            eprintln!("[coucou] autostart: {err}");
+            eprintln!("[voltadock] autostart: {err}");
         }
     }
     if screen_changed {
@@ -120,6 +122,9 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
     island::set_ignore_cursor(&app, false);
     shared.gate.forget_ignore_state();
     shared.gate.set_active(!collapsed);
+    // The poll that re-arms file drops is parked while collapsed, and a drag
+    // from Explorer onto the wake strip starts before it could notice.
+    island::unblock_webview_drops_later(&app);
 }
 
 /// The front end pushes the island shape; Rust decides click-through from it.
@@ -179,7 +184,7 @@ fn open_claude_session(session_id: Option<String>, kind: String) -> bool {
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
     let url = match kind.as_str() {
-        "needs-input" => "claude://code/needs-input?source=coucou".to_string(),
+        "needs-input" => "claude://code/needs-input?source=voltadock".to_string(),
         "resume" => match session_id.as_deref().filter(|id| is_uuid(id)) {
             Some(id) => format!("claude://resume?session={id}"),
             None => return false,
@@ -231,7 +236,7 @@ fn open_project_session(path: String) -> bool {
     if !std::path::Path::new(&path).is_dir() {
         return false;
     }
-    let url = format!("claude://code/new?folder={}&source=coucou", projects::url_encode(&path));
+    let url = format!("claude://code/new?folder={}&source=voltadock", projects::url_encode(&path));
     let result = unsafe {
         ShellExecuteW(None, w!("open"), &HSTRING::from(url), None, None, SW_SHOWNORMAL)
     };
@@ -445,6 +450,13 @@ fn remote_pairing() -> Result<remote::Pairing, String> {
     remote::pairing()
 }
 
+/// The island's webview owns the Hoy data; it hands every change here so a
+/// paired iPad can show it.
+#[tauri::command]
+fn today_publish(state: serde_json::Value) {
+    remote::set_today(state);
+}
+
 #[tauri::command]
 fn remote_forget(app: AppHandle) -> Result<(), String> {
     remote::forget(&app)
@@ -460,8 +472,11 @@ async fn chat_send(
     query: String,
     context: Option<ChatContext>,
 ) -> Result<ChatReply, String> {
-    let model = shared.settings.lock().unwrap().model.clone();
-    claude::send(&chat, &model, query, context).await
+    let (model, docpack) = {
+        let s = shared.settings.lock().unwrap();
+        (s.model.clone(), s.docpack_enabled)
+    };
+    claude::send(&chat, &model, query, context, docpack).await
 }
 
 #[tauri::command]
@@ -605,6 +620,8 @@ fn open_settings_window(app: AppHandle) {
 }
 
 pub fn run() {
+    // Before anything reads settings or secrets: see migrate.rs.
+    migrate::run();
     let loaded = settings::load();
     i18n::apply(&loaded.language);
     let gate = Arc::new(PollGate::new());
@@ -660,6 +677,7 @@ pub fn run() {
             remote_status,
             remote_pairing,
             remote_forget,
+            today_publish,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -675,8 +693,18 @@ pub fn run() {
             gate.collapsed.store(false, Ordering::Relaxed);
             gate.set_active(true);
             island::spawn_cursor_poll(handle.clone(), gate.clone());
+            // WebView2 registers its own drop target a little after launch.
+            {
+                let handle = handle.clone();
+                std::thread::spawn(move || {
+                    for secs in [2, 4, 8] {
+                        std::thread::sleep(std::time::Duration::from_secs(secs));
+                        island::unblock_webview_drops_later(&handle);
+                    }
+                });
+            }
 
-            log::line(format!("--- Coucou {} started ---", env!("CARGO_PKG_VERSION")));
+            log::line(format!("--- VoltaDock {} started ---", env!("CARGO_PKG_VERSION")));
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
             remote::apply(&handle, loaded.remote_enabled);
@@ -685,5 +713,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running Coucou");
+        .expect("error while running VoltaDock");
 }

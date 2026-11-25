@@ -6,6 +6,7 @@ import { nextDue, parseQuickAdd, type Repeat } from "./quickadd";
 import { Voice } from "./voice";
 import { tr } from "../i18n";
 import { State } from "./state";
+import { Bridge, onEvent } from "./bridge";
 
 export interface TodayItem {
   id: string;
@@ -19,6 +20,8 @@ export interface TodayItem {
   firedAt: number | null;
   /** A reminder that comes back ("cada lunes a las 9"); it never ends up done. */
   repeat?: Repeat | null;
+  /** A goal of the day ("objetivo"): shown with a done counter on the compact island. */
+  goal?: boolean;
 }
 
 /** A small daily routine with a streak ("beber agua"). */
@@ -67,11 +70,13 @@ const STALE_MS = 60 * 60_000;
 /** A reminder shown more than this late is labelled as missed. */
 const LATE_MS = 2 * 60_000;
 
-const ITEMS_KEY = "coucou.today.items";
-const FOCUS_KEY = "coucou.today.focus";
-const BLOCKS_KEY = "coucou.today.blocks";
-const HABITS_KEY = "coucou.today.habits";
+const ITEMS_KEY = "voltadock.today.items";
+const FOCUS_KEY = "voltadock.today.focus";
+const BLOCKS_KEY = "voltadock.today.blocks";
+const HABITS_KEY = "voltadock.today.habits";
 const KEEP_DAYS = 120;
+
+const GOAL_PREFIX = /^(?:!+\s*|(?:objetivo|goal)\s*:\s*)/i;
 
 const IDLE: FocusSession = { phase: "idle", endsAt: null, pausedRemaining: null, duration: 0 };
 
@@ -114,7 +119,9 @@ export function dueLabel(ms: number, now = Date.now()): string {
 
 function read<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    // Builds before the rename stored these under "coucou.…": adopt them once.
+    const legacy = key.replace(/^voltadock\./, "coucou.");
+    const raw = localStorage.getItem(key) ?? localStorage.getItem(legacy);
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
@@ -160,6 +167,10 @@ class TodayStore {
     this.host = host;
     // A timer that slept with the PC fires late; coming back to the screen is
     // another good moment to look.
+    // The iPad app shows and drives Hoy: it sends commands, we apply them and
+    // publish the result (every save publishes).
+    void onEvent<Record<string, unknown>>("remote-today-cmd", (m) => this.remoteCommand(m));
+    this.publish();
     document.addEventListener("visibilitychange", () => this.check());
     window.addEventListener("focus", () => this.check());
     this.check();
@@ -182,6 +193,35 @@ class TodayStore {
     return this.openItems.find((i) => i.dueAt != null && i.firedAt == null) ?? null;
   }
 
+  /** Goals still to do. */
+  get openGoals(): TodayItem[] {
+    return this.openItems.filter((i) => i.goal);
+  }
+
+  /** Goals ticked today. */
+  get goalsDone(): number {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return this.items.filter((i) => i.goal && i.done && (i.doneAt ?? 0) >= start.getTime()).length;
+  }
+
+  /** What the compact island shows: focus clock, goals counter, next reminder of the day. */
+  compactParts(now = Date.now()): { kind: "focus" | "rest" | "goals" | "reminder"; text: string; paused?: boolean }[] {
+    const parts: { kind: "focus" | "rest" | "goals" | "reminder"; text: string; paused?: boolean }[] = [];
+    const f = this.focus;
+    if (f.phase !== "idle") {
+      parts.push({ kind: f.phase === "focus" ? "focus" : "rest", text: clock(remaining(f, now)), paused: isPaused(f) });
+    }
+    const open = this.openGoals.length;
+    const done = this.goalsDone;
+    if (open + done > 0) parts.push({ kind: "goals", text: `${done}/${open + done}` });
+    const next = this.nextReminder;
+    if (next?.dueAt != null && next.dueAt - now < 12 * 3_600_000) {
+      parts.push({ kind: "reminder", text: new Date(next.dueAt).toLocaleTimeString(tr.tag, { hour: "2-digit", minute: "2-digit" }) });
+    }
+    return parts;
+  }
+
   get blocksToday(): number {
     return this.blocksByDay[dayKey(Date.now())] ?? 0;
   }
@@ -189,17 +229,23 @@ class TodayStore {
   // ── Items ──────────────────────────────────────────────────────────────────
 
   /** The quick-add line: "hábito beber agua" starts a habit, anything else is a to-do. */
-  addLine(raw: string): { kind: "item"; item: TodayItem } | { kind: "habit"; habit: Habit } | null {
+  addLine(raw: string, asGoal = false): { kind: "item"; item: TodayItem } | { kind: "habit"; habit: Habit } | null {
     const m = raw.trim().match(/^(?:h[áa]bito|habit)s?:?\s+(.+)$/i);
     if (m) {
       const habit = this.addHabit(m[1]);
       return habit ? { kind: "habit", habit } : null;
     }
-    const item = this.add(raw);
+    const item = this.add(raw, asGoal);
     return item ? { kind: "item", item } : null;
   }
 
-  add(raw: string): TodayItem | null {
+  add(raw: string, asGoal = false): TodayItem | null {
+    // "!" or "objetivo:" / "goal:" in front makes it a goal of the day.
+    const m = raw.trim().match(GOAL_PREFIX);
+    if (m) {
+      asGoal = true;
+      raw = raw.trim().slice(m[0].length);
+    }
     const parsed = parseQuickAdd(raw, new Date(), { timer: tr.today.timerTitle, reminder: tr.today.reminderTitle });
     if (!parsed) return null;
     const item: TodayItem = {
@@ -211,6 +257,7 @@ class TodayStore {
       createdAt: Date.now(),
       firedAt: null,
       repeat: parsed.repeat,
+      goal: asGoal,
     };
     this.items.push(item);
     this.commit();
@@ -540,6 +587,40 @@ class TodayStore {
     write(FOCUS_KEY, this.focus);
     write(BLOCKS_KEY, this.blocksByDay);
     write(HABITS_KEY, this.habits);
+    this.publish();
+  }
+
+  /** What a paired iPad needs to draw Hoy; it runs the countdown itself from endsAt. */
+  snapshot() {
+    return {
+      now: Date.now(),
+      focus: this.focus,
+      blocksToday: this.blocksToday,
+      items: this.items.slice(0, 60).map((i) => ({
+        id: i.id, text: i.text, dueAt: i.dueAt, done: i.done, goal: !!i.goal, fired: i.firedAt != null,
+      })),
+    };
+  }
+
+  private publish() {
+    void Bridge.todayPublish(this.snapshot());
+  }
+
+  /** A command from the iPad (already authenticated by the encrypted link). */
+  private remoteCommand(m: Record<string, unknown>) {
+    const id = typeof m.id === "string" ? m.id : "";
+    switch (m.action) {
+      case "focus_start": this.startFocus(); break;
+      case "focus_pause": this.pause(); break;
+      case "focus_resume": this.resume(); break;
+      case "focus_stop": this.stopFocus(); break;
+      case "rest_start": this.startRest(); break;
+      case "toggle": this.toggleDone(id); break;
+      case "remove": this.remove(id); break;
+      case "add":
+        if (typeof m.text === "string") this.add(m.text.slice(0, 200), m.goal === true);
+        break;
+    }
   }
 }
 

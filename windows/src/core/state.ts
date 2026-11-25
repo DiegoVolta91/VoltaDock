@@ -41,12 +41,12 @@ export interface SessionInfo {
 export type SessionNote = "permission" | "limit" | "answer" | "error";
 const SESSION_NOTES: readonly string[] = ["permission", "limit", "answer", "error"];
 
-const SESSIONS_KEY = "coucou.sessions";
+const SESSIONS_KEY = "voltadock.sessions";
 const MAX_SESSIONS = 2;
 
 function loadSessions(): SessionInfo[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? "[]");
+    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? localStorage.getItem("coucou.sessions") ?? "[]");
     if (!Array.isArray(raw)) return [];
     // Older builds stored the note as Spanish text: drop it, the detail shows instead.
     return (raw as SessionInfo[]).slice(0, MAX_SESSIONS).map((s) =>
@@ -121,6 +121,8 @@ export interface IntegrationInfo {
   configured: boolean;
 }
 
+export type DockEdge = "top" | "bottom" | "left" | "right";
+
 export interface Settings {
   soundEnabled: boolean;
   soundVolume: number;
@@ -137,13 +139,14 @@ export interface Settings {
   /** Interface language: "es" (default), "en", or "system" to follow Windows. */
   language: Language;
   /**
-   * "top" = top centre of the display (default); "free" = wherever the user
-   * dragged it. Written by Rust only (drag, reset).
+   * "top" = top centre of the display (default); "free" = docked to the edge the
+   * user dropped it on. Written by Rust only (drag, reset).
    */
   dock: "top" | "free";
-  /** Free dock: anchor as fractions of the display's work area (see settings.rs). */
-  dockX: number;
-  dockY: number;
+  /** Free dock: the display edge the island is attached to. */
+  dockEdge: DockEdge;
+  /** Free dock: where along that edge, 0..1 of the display's work area. */
+  dockPos: number;
   dockMonitor: string;
   /** A paired iPad may connect over the local network. Off by default. */
   remoteEnabled: boolean;
@@ -151,6 +154,8 @@ export interface Settings {
   voiceEnabled: boolean;
   /** Look for a newer release on GitHub at launch. Off by default. */
   updateCheck: boolean;
+  /** Office files are read with docpack before they go to Claude. */
+  docpackEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -168,12 +173,13 @@ export const DEFAULT_SETTINGS: Settings = {
   projectsRoot: "",
   language: "es",
   dock: "top",
-  dockX: 0.5,
-  dockY: 0,
+  dockEdge: "top",
+  dockPos: 0.5,
   dockMonitor: "",
   remoteEnabled: false,
   voiceEnabled: false,
   updateCheck: false,
+  docpackEnabled: true,
 };
 
 type Listener = () => void;
@@ -325,7 +331,7 @@ class AppState {
   loadIntegrationTasks() {
     for (const proto of INTEGRATION_AGENTS) {
       const shouldLoad =
-        proto.id === "integration_claude" || this.settings.activeIntegrations.includes(proto.id);
+        proto.id === "integration_claude" || proto.id === "integration_today" || this.settings.activeIntegrations.includes(proto.id);
       const idx = this.tasks.findIndex((t) => t.id === proto.id);
       if (shouldLoad && idx < 0) this.tasks.push({ ...proto, steps: [] });
       if (!shouldLoad && idx >= 0) this.tasks.splice(idx, 1);
@@ -338,13 +344,13 @@ class AppState {
   }
 
   toggleIntegration(id: string) {
-    if (id === "integration_claude") return;
+    if (id === "integration_claude" || id === "integration_today") return;
     const active = this.settings.activeIntegrations;
     if (active.includes(id)) {
       this.settings.activeIntegrations = active.filter((x) => x !== id);
       if (this.focusId === id) this.focusId = "integration_claude";
     } else {
-      if (active.length >= 4) return;
+      if (active.filter((x) => x !== "integration_today").length >= 4) return;
       this.settings.activeIntegrations = [...active, id];
     }
     this.loadIntegrationTasks();

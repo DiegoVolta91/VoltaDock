@@ -20,6 +20,8 @@ struct TodayItem: Codable, Identifiable, Equatable {
     var firedAt: Date? = nil
     /// A reminder that comes back ("cada lunes a las 9"); it never ends up done.
     var repeatRule: Repeat? = nil
+    /// A goal of the day: counted as "done/total" in the card.
+    var goal: Bool = false
 }
 
 /// How a reminder comes back. `weekly` uses 0 = Sunday, like the Windows twin.
@@ -328,6 +330,15 @@ final class TodayStore: ObservableObject {
         openItems.first { $0.dueAt != nil && $0.firedAt == nil }
     }
 
+    /// Goals still to do.
+    var openGoals: [TodayItem] { openItems.filter(\.goal) }
+
+    /// Goals ticked today.
+    var goalsDone: Int {
+        let start = Calendar.current.startOfDay(for: .now)
+        return items.filter { $0.goal && $0.done && ($0.doneAt ?? .distantPast) >= start }.count
+    }
+
     var blocksToday: Int { blocksByDay[Self.dayKey(.now)] ?? 0 }
 
     // MARK: Items
@@ -336,7 +347,7 @@ final class TodayStore: ObservableObject {
 
     /// The quick-add line: "hábito beber agua" starts a habit, anything else is a to-do.
     @discardableResult
-    func addLine(_ raw: String) -> Added? {
+    func addLine(_ raw: String, asGoal: Bool = false) -> Added? {
         let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let pattern = #"^(?:h[áa]bito|habit)s?:?\s+(.+)$"#
         if let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
@@ -344,14 +355,21 @@ final class TodayStore: ObservableObject {
             guard let r = Range(m.range(at: 1), in: line), let habit = addHabit(String(line[r])) else { return nil }
             return .habit(habit)
         }
-        if let item = add(raw) { return .item(item) }
+        if let item = add(raw, asGoal: asGoal) { return .item(item) }
         return nil
     }
 
     @discardableResult
-    func add(_ raw: String) -> TodayItem? {
-        guard let parsed = QuickAdd.parse(raw) else { return nil }
-        let item = TodayItem(text: parsed.title, dueAt: parsed.dueAt, repeatRule: parsed.repeatRule)
+    func add(_ raw: String, asGoal: Bool = false) -> TodayItem? {
+        // "!" or "goal:" in front makes it a goal of the day.
+        var text = raw.trimmingCharacters(in: .whitespaces)
+        var isGoal = asGoal
+        if let r = text.range(of: #"^(?:!+\s*|(?:objetivo|goal)\s*:\s*)"#, options: [.regularExpression, .caseInsensitive]) {
+            isGoal = true
+            text.removeSubrange(r)
+        }
+        guard let parsed = QuickAdd.parse(text) else { return nil }
+        let item = TodayItem(text: parsed.title, dueAt: parsed.dueAt, repeatRule: parsed.repeatRule, goal: isGoal)
         items.append(item)
         commit()
         return item

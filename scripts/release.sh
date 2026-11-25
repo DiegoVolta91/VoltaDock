@@ -50,7 +50,7 @@ git tag "v$VERSION"
 git push origin "v$VERSION"
 
 gh release create "v$VERSION" "$ZIP" \
-  --repo DiegoVolta91/coucou \
+  --repo DiegoVolta91/VoltaDock \
   --title "VoltaDock $VERSION" \
   --notes "$(cat <<EOF
 ## Install
@@ -61,10 +61,10 @@ Download **VoltaDock.zip**, unzip and move **VoltaDock.app** to \`/Applications\
 
 \`\`\`bash
 brew install xcodegen
-git clone https://github.com/DiegoVolta91/coucou.git
-cd coucou/NotchBuddy && xcodegen && open NotchBuddy.xcodeproj
+git clone https://github.com/DiegoVolta91/VoltaDock.git
+cd VoltaDock/NotchBuddy && xcodegen && open NotchBuddy.xcodeproj
 \`\`\`
 EOF
 )"
 
-echo "✓ v$VERSION released: https://github.com/DiegoVolta91/coucou/releases/tag/v$VERSION"
+echo "✓ v$VERSION released: https://github.com/DiegoVolta91/VoltaDock/releases/tag/v$VERSION"

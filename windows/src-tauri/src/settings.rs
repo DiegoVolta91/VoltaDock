@@ -1,4 +1,4 @@
-// Preferences, stored as plain JSON in %APPDATA%\Coucou\settings.json.
+// Preferences, stored as plain JSON in %APPDATA%\VoltaDock\settings.json.
 // No secret ever lands here — API keys live in the Windows Credential Manager.
 
 use serde::{Deserialize, Serialize};
@@ -28,16 +28,23 @@ pub struct Settings {
     #[serde(default = "default_language")]
     pub language: String,
     /// Where the island sits: "top" = top centre of the display picked by
-    /// `screen` (the default, like the notch), "free" = wherever the user dragged it.
+    /// `screen` (the default, like the notch), "free" = docked to the edge the
+    /// user dropped it on (`dock_edge`, `dock_pos`).
     #[serde(default = "default_dock")]
     pub dock: String,
-    /// Free dock: the island's anchor as fractions (0..1) of the display's work
-    /// area. The anchor is the middle of the edge the island grows from — its top
-    /// edge in the upper half of the display, its bottom edge in the lower half.
-    /// Fractions survive a resolution or scale change.
+    /// Free dock: the display edge the island is attached to — "top", "bottom",
+    /// "left" or "right" — and the island opens away from it.
     #[serde(default)]
+    pub dock_edge: String,
+    /// Free dock: where along that edge, as a fraction (0..1) of the display's
+    /// work area. Fractions survive a resolution or scale change.
+    #[serde(default = "default_dock_pos")]
+    pub dock_pos: f64,
+    /// Read only to migrate a settings.json from the first free-dock build
+    /// (anchor x/y, no edge); never written back.
+    #[serde(default, skip_serializing)]
     pub dock_x: f64,
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub dock_y: f64,
     /// Free dock: name Windows gives the display it was dropped on.
     #[serde(default)]
@@ -51,10 +58,22 @@ pub struct Settings {
     /// Ask GitHub for a newer release at launch. Off by default.
     #[serde(default)]
     pub update_check: bool,
+    /// Office files dropped on the island are read with docpack (docpack.rs)
+    /// before they go to Claude. On by default; PDFs and images are unaffected.
+    #[serde(default = "default_true")]
+    pub docpack_enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_dock() -> String {
     "top".into()
+}
+
+fn default_dock_pos() -> f64 {
+    0.5
 }
 
 fn default_language() -> String {
@@ -86,33 +105,36 @@ impl Default for Settings {
             remote_enabled: false,
             voice_enabled: false,
             update_check: false,
+            docpack_enabled: true,
             language: default_language(),
             dock: default_dock(),
-            dock_x: 0.5,
+            dock_edge: "top".into(),
+            dock_pos: 0.5,
+            dock_x: 0.0,
             dock_y: 0.0,
             dock_monitor: String::new(),
         }
     }
 }
 
-/// %APPDATA%\Coucou
+/// %APPDATA%\VoltaDock
 pub fn config_dir() -> PathBuf {
     let base = std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
-    base.join("Coucou")
+    base.join("VoltaDock")
 }
 
-/// %LOCALAPPDATA%\Coucou — where coucou-hook.exe and the log live.
+/// %LOCALAPPDATA%\VoltaDock — where voltadock-hook.exe and the log live.
 pub fn local_dir() -> PathBuf {
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
-    base.join("Coucou")
+    base.join("VoltaDock")
 }
 
 pub fn hook_exe_path() -> PathBuf {
-    local_dir().join("bin").join("coucou-hook.exe")
+    local_dir().join("bin").join("voltadock-hook.exe")
 }
 
 fn settings_path() -> PathBuf {
@@ -120,10 +142,21 @@ fn settings_path() -> PathBuf {
 }
 
 pub fn load() -> Settings {
-    match std::fs::read(settings_path()) {
+    let mut s: Settings = match std::fs::read(settings_path()) {
         Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_default(),
         Err(_) => Settings::default(),
+    };
+    // First free-dock build stored an anchor (x, y) instead of an edge.
+    if s.dock_edge.is_empty() {
+        if s.dock == "free" {
+            s.dock_edge = if s.dock_y > 0.5 { "bottom" } else { "top" }.into();
+            s.dock_pos = s.dock_x.clamp(0.0, 1.0);
+        } else {
+            s.dock_edge = "top".into();
+            s.dock_pos = 0.5;
+        }
     }
+    s
 }
 
 pub fn save(settings: &Settings) -> std::io::Result<()> {

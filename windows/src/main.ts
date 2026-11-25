@@ -17,7 +17,7 @@ async function lookForUpdate() {
   if (!State.settings.updateCheck) return;
   const info = await Bridge.checkUpdate();
   if (!info || info.status !== "newer" || !info.url) return;
-  const KEY = "coucou.update.seen";
+  const KEY = "voltadock.update.seen";
   try {
     if (localStorage.getItem(KEY) === info.version) return;
     localStorage.setItem(KEY, info.version);
@@ -41,6 +41,13 @@ async function main() {
   }
   // The island was built in the system language; redraw it if the setting says otherwise.
   if (setLanguage(State.settings.language)) island.relocalize();
+  // `npm run dev` only: ?dock=left|right|bottom|top previews a docked island.
+  if (!IS_TAURI) {
+    const edge = new URLSearchParams(location.search).get("dock");
+    if (edge === "left" || edge === "right" || edge === "bottom" || edge === "top") {
+      State.settings = { ...State.settings, dock: "free", dockEdge: edge };
+    }
+  }
   island.applySettings();
   State.loadIntegrationTasks();
 
@@ -81,7 +88,7 @@ async function main() {
   // "Borrar mis datos" in Ajustes: empty what this window keeps in memory too.
   await onEvent<null>("data-cleared", () => {
     try {
-      for (const k of Object.keys(localStorage)) if (k.startsWith("coucou.")) localStorage.removeItem(k);
+      for (const k of Object.keys(localStorage)) if (k.startsWith("voltadock.") || k.startsWith("coucou.")) localStorage.removeItem(k);
     } catch {
       /* storage can be unavailable */
     }

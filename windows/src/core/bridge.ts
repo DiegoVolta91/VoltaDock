@@ -15,7 +15,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T |
   try {
     return await invoke<T>(cmd, args);
   } catch (err) {
-    console.error(`[coucou] ${cmd} failed`, err);
+    console.error(`[voltadock] ${cmd} failed`, err);
     return null;
   }
 }
@@ -98,7 +98,7 @@ export const Bridge = {
 
   openSettingsWindow: () => call<void>("open_settings_window"),
 
-  /** Writes to %LOCALAPPDATA%\Coucou\coucou.log, next to the Rust lines. */
+  /** Writes to %LOCALAPPDATA%\VoltaDock\voltadock.log, next to the Rust lines. */
   log: (message: string) => call<void>("log_line", { message }),
 
   // ── Claude Code hooks ─────────────────────────────────────────────────────
@@ -123,6 +123,8 @@ export const Bridge = {
   remoteStatus: () => call<RemoteStatus>("remote_status"),
   /** The pairing secret, as text and QR code. Only on an explicit click. */
   remotePairing: () => callOrThrow<RemotePairing>("remote_pairing"),
+  /** Hands the Hoy snapshot to the iPad server (focus, goals, reminders). */
+  todayPublish: (state: unknown) => call<void>("today_publish", { state }),
   /** New key: every paired iPad is disconnected. */
   remoteForget: () => callOrThrow<void>("remote_forget"),
 
@@ -237,7 +239,7 @@ export interface HookPreview {
 
 /** Same as `call`, but surfaces the error so the UI can show what went wrong. */
 async function callOrThrow<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-  if (!IS_TAURI) throw new Error("not running inside Coucou");
+  if (!IS_TAURI) throw new Error("not running inside VoltaDock");
   return invoke<T>(cmd, args);
 }
 
