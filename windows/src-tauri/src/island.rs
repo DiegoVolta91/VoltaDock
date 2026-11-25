@@ -573,7 +573,7 @@ pub fn store_dock(app: &AppHandle, next: Settings) {
     let Some(shared) = app.try_state::<crate::Shared>() else { return };
     *shared.settings.lock().unwrap() = next.clone();
     if let Err(err) = crate::settings::save(&next) {
-        eprintln!("[coucou] could not save settings: {err}");
+        eprintln!("[voltadock] could not save settings: {err}");
     }
     crate::log::line(format!(
         "dock: {} x={:.3} y={:.3} on {:?}",

@@ -50,9 +50,9 @@ const STALE_MS = 60 * 60_000;
 /** A reminder shown more than this late is labelled as missed. */
 const LATE_MS = 2 * 60_000;
 
-const ITEMS_KEY = "coucou.today.items";
-const FOCUS_KEY = "coucou.today.focus";
-const BLOCKS_KEY = "coucou.today.blocks";
+const ITEMS_KEY = "voltadock.today.items";
+const FOCUS_KEY = "voltadock.today.focus";
+const BLOCKS_KEY = "voltadock.today.blocks";
 
 const IDLE: FocusSession = { phase: "idle", endsAt: null, pausedRemaining: null, duration: 0 };
 
@@ -95,7 +95,9 @@ export function dueLabel(ms: number, now = Date.now()): string {
 
 function read<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    // Builds before the rename stored these under "coucou.…": adopt them once.
+    const legacy = key.replace(/^voltadock\./, "coucou.");
+    const raw = localStorage.getItem(key) ?? localStorage.getItem(legacy);
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;

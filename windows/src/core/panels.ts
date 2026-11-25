@@ -21,7 +21,7 @@ export async function refreshProjects(force = false) {
     State.projects = found;
     State.notify();
   } catch {
-    /* outside Coucou, or git is missing: the panel keeps what it had */
+    /* outside VoltaDock, or git is missing: the panel keeps what it had */
   }
 }
 

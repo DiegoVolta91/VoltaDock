@@ -3,7 +3,7 @@
 // The rule from CLAUDE.md is strict and is followed to the letter:
 // read %USERPROFILE%\.claude\settings.json, take a dated backup, merge without
 // touching anybody else's hooks, show the diff, and write only after an explicit
-// click. Uninstall removes Coucou's entries and nothing else.
+// click. Uninstall removes VoltaDock's entries and nothing else.
 //
 // The command is only the quoted exe path in forward slashes plus the event name:
 // on Windows Claude Code runs hook commands through Git Bash, and anything with
@@ -36,8 +36,13 @@ pub const HOOK_EVENTS: &[(&str, u64)] = &[
     ("SubagentStop", 10),
 ];
 
-/// Marker that identifies a Coucou entry inside settings.json.
-const MARKER: &str = "coucou-hook";
+/// Marker that identifies a VoltaDock entry inside settings.json.
+const MARKER: &str = "voltadock-hook";
+/// The relay's name before the rename. Such entries are still ours: installing
+/// replaces them and uninstalling removes them, but they do not count as
+/// "installed" (the old relay no longer reaches the app), so Settings offers the
+/// one-click reinstall.
+const LEGACY_MARKER: &str = "coucou-hook";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -116,6 +121,14 @@ fn hook_command(event: &str) -> String {
 }
 
 fn entry_is_ours(entry: &Value) -> bool {
+    entry_has(entry, &[MARKER, LEGACY_MARKER])
+}
+
+fn entry_is_current(entry: &Value) -> bool {
+    entry_has(entry, &[MARKER])
+}
+
+fn entry_has(entry: &Value, markers: &[&str]) -> bool {
     entry
         .get("hooks")
         .and_then(Value::as_array)
@@ -123,14 +136,14 @@ fn entry_is_ours(entry: &Value) -> bool {
             hooks.iter().any(|h| {
                 h.get("command")
                     .and_then(Value::as_str)
-                    .map(|c| c.contains(MARKER))
+                    .map(|c| markers.iter().any(|m| c.contains(m)))
                     .unwrap_or(false)
             })
         })
         .unwrap_or(false)
 }
 
-/// Settings with Coucou's hooks added; everything else is left untouched.
+/// Settings with VoltaDock's hooks added; everything else is left untouched.
 fn merged(existing: &Value) -> Value {
     let mut root = existing.as_object().cloned().unwrap_or_default();
     let mut hooks = root
@@ -160,7 +173,7 @@ fn merged(existing: &Value) -> Value {
     Value::Object(root)
 }
 
-/// Settings with every Coucou entry removed, and nothing else changed.
+/// Settings with every VoltaDock entry removed, and nothing else changed.
 fn without_ours(existing: &Value) -> Value {
     let mut root = existing.as_object().cloned().unwrap_or_default();
     let Some(hooks) = root.get("hooks").and_then(Value::as_object).cloned() else {
@@ -238,7 +251,7 @@ pub fn status() -> HookStatus {
                 .values()
                 .filter_map(Value::as_array)
                 .flatten()
-                .any(entry_is_ours)
+                .any(entry_is_current)
         })
         .unwrap_or(false);
     let hook_path = settings::hook_exe_path();
@@ -290,7 +303,7 @@ pub fn write(install: bool, fingerprint: &str) -> Result<String, String> {
 
     // Write beside the target and rename over it: a crash or a full disk leaves
     // the original settings.json intact rather than half a file.
-    let temp = path.with_extension(format!("json.coucou-{}", std::process::id()));
+    let temp = path.with_extension(format!("json.voltadock-{}", std::process::id()));
     std::fs::write(&temp, text.as_bytes()).map_err(|e| fill(m().write_failed, &[("err", &e.to_string())]))?;
     if let Err(err) = std::fs::rename(&temp, &path) {
         let _ = std::fs::remove_file(&temp);
@@ -299,9 +312,9 @@ pub fn write(install: bool, fingerprint: &str) -> Result<String, String> {
     Ok(backup.to_string_lossy().to_string())
 }
 
-/// Copies coucou-hook.exe into %LOCALAPPDATA%\Coucou\bin on launch.
+/// Copies voltadock-hook.exe into %LOCALAPPDATA%\VoltaDock\bin on launch.
 /// In a bundled install it comes from the app resources; in `tauri dev` it sits
-/// next to coucou.exe in the workspace target directory.
+/// next to voltadock.exe in the workspace target directory.
 ///
 /// Every candidate is tried rather than just the first, because getting this
 /// wrong is silent and fatal: `resources` used to be a glob, which made NSIS
@@ -316,24 +329,24 @@ pub fn ensure_hook_exe(app: &AppHandle) {
     }
 
     let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Ok(p) = app.path().resolve("coucou-hook.exe", tauri::path::BaseDirectory::Resource) {
+    if let Ok(p) = app.path().resolve("voltadock-hook.exe", tauri::path::BaseDirectory::Resource) {
         candidates.push(p);
     }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
             // Installed build, then `tauri dev` (target/debug) next to the
             // release hook the pre-build step produces.
-            candidates.push(parent.join("coucou-hook.exe"));
-            candidates.push(parent.join("../release/coucou-hook.exe"));
+            candidates.push(parent.join("voltadock-hook.exe"));
+            candidates.push(parent.join("../release/voltadock-hook.exe"));
             // Belt and braces: where the old glob form used to land it.
-            candidates.push(parent.join("_up_/target/release/coucou-hook.exe"));
+            candidates.push(parent.join("_up_/target/release/voltadock-hook.exe"));
         }
     }
 
     let tried: Vec<String> = candidates.iter().map(|p| p.display().to_string()).collect();
     let Some(src) = candidates.into_iter().find(|p| p.exists()) else {
         crate::log::line(format!(
-            "coucou-hook.exe not found — Claude Code hooks cannot work. Looked in: {}",
+            "voltadock-hook.exe not found — Claude Code hooks cannot work. Looked in: {}",
             tried.join(", ")
         ));
         return;
@@ -350,7 +363,7 @@ pub fn ensure_hook_exe(app: &AppHandle) {
     // copy is fine, it is the same relay.
     if let Err(err) = std::fs::copy(&src, &dest) {
         if !dest.exists() {
-            crate::log::line(format!("could not install coucou-hook.exe: {err}"));
+            crate::log::line(format!("could not install voltadock-hook.exe: {err}"));
         }
     }
 }
@@ -449,7 +462,7 @@ mod tests {
     #[test]
     fn unreadable_content_is_an_error_never_an_empty_object() {
         // This is the whole bug: returning {} here meant `merged()` produced a
-        // file containing nothing but Coucou's hooks, and the write replaced
+        // file containing nothing but VoltaDock's hooks, and the write replaced
         // everything the user had.
         for bad in [&b"{ not json"[..], &b"[1,2,3]"[..], &b"\"a string\""[..]] {
             assert!(
@@ -501,6 +514,21 @@ mod tests {
     }
 
     #[test]
+    fn legacy_coucou_entries_are_replaced_and_do_not_count_as_installed() {
+        let old = json!({"hooks": {"Stop": [
+            {"hooks": [{"type": "command", "command": "\"C:/u/AppData/Local/Coucou/bin/coucou-hook.exe\" Stop"}]},
+            {"hooks": [{"type": "command", "command": "other-tool"}]}
+        ]}});
+        assert!(!old["hooks"]["Stop"].as_array().unwrap().iter().any(entry_is_current));
+        let new = merged(&old);
+        let stop = new["hooks"]["Stop"].as_array().unwrap();
+        assert_eq!(stop.len(), 2, "foreign hook kept, legacy one replaced");
+        assert!(stop.iter().all(|e| !entry_has(e, &[LEGACY_MARKER])));
+        assert!(stop.iter().any(entry_is_current));
+        assert!(!without_ours(&old)["hooks"]["Stop"].to_string().contains("coucou"));
+    }
+
+    #[test]
     fn a_fingerprint_notices_any_change() {
         assert_eq!(fingerprint(b"{}"), fingerprint(b"{}"));
         assert_ne!(fingerprint(b"{}"), fingerprint(b"{ }"));
@@ -511,7 +539,7 @@ mod tests {
     /// USERPROFILE at a temp directory, and that is process-wide.
     #[test]
     fn writing_backs_up_preserves_and_refuses_a_changed_file() {
-        let tmp = std::env::temp_dir().join(format!("coucou-hooks-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("voltadock-hooks-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join(".claude")).unwrap();
         std::env::set_var("USERPROFILE", &tmp);
@@ -527,7 +555,7 @@ mod tests {
 
         // Install.
         let plan = preview(true).expect("a BOM must not stop the preview");
-        assert!(plan.diff.contains("coucou-hook"), "the diff must show what changes");
+        assert!(plan.diff.contains("voltadock-hook"), "the diff must show what changes");
         let backup = write(true, &plan.fingerprint).expect("install should succeed");
 
         // The backup holds the original bytes, BOM and all.

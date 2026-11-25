@@ -242,7 +242,7 @@ export async function refreshSessions(force = false) {
       })),
     );
   } catch {
-    /* outside Coucou, or the transcripts are not there: the list stays as it is */
+    /* outside VoltaDock, or the transcripts are not there: the list stays as it is */
   }
 }
 

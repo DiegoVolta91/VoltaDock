@@ -32,7 +32,7 @@ pub fn supports(ext: &str) -> bool {
 }
 
 /// docpack.exe is installed beside the app (a Tauri resource); a copy in
-/// %LOCALAPPDATA%\Coucou\bin also works.
+/// %LOCALAPPDATA%\VoltaDock\bin also works.
 fn exe_path() -> Option<PathBuf> {
     let beside_app = std::env::current_exe()
         .ok()

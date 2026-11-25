@@ -1,5 +1,5 @@
 {
-  "name": "coucou-windows",
+  "name": "voltadock-windows",
   "private": true,
   "version": "0.1.1",
   "type": "module",
@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "icons": "node scripts/gen-icons.mjs",
     "tauri": "tauri",
-    "predev": "node scripts/fetch-docpack.mjs && cargo build --release -p coucou-hook",
-    "prebuild": "node scripts/fetch-docpack.mjs && cargo build --release -p coucou-hook",
+    "predev": "node scripts/fetch-docpack.mjs && cargo build --release -p voltadock-hook",
+    "prebuild": "node scripts/fetch-docpack.mjs && cargo build --release -p voltadock-hook",
     "pack": "tauri build && node scripts/pack.mjs"
   },
   "devDependencies": {
