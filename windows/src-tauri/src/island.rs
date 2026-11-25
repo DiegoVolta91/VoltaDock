@@ -1,9 +1,11 @@
 // Island window: placement on the chosen display, the two window sizes
 // (full panel / invisible wake strip), click-through and the cursor poll.
 //
-// There is no notch on a PC, so the island is a black shape drawn at the top
-// centre of the main display inside a borderless, transparent, always-on-top
-// window that never takes focus.
+// There is no notch on a PC, so the island is a black shape drawn inside a
+// borderless, transparent, always-on-top window that never takes focus. By
+// default it sits at the top centre of the display, like the notch; the user can
+// also drag it anywhere ("free" dock), and it then grows downwards in the upper
+// half of a display and upwards in the lower half.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
@@ -11,6 +13,8 @@ use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, PhysicalSize, WebviewWindow};
+
+use crate::settings::Settings;
 
 use windows::Win32::Foundation::{HWND, POINT};
 use windows::core::BOOL;
@@ -29,6 +33,19 @@ pub const PANEL_H: f64 = 320.0;
 /// Logical size of the invisible strip that wakes the island when it is hidden.
 pub const STRIP_W: f64 = 240.0;
 pub const STRIP_H: f64 = 6.0;
+
+/// Logical size of the small visible handle a free-placed island shrinks to when
+/// hidden. Away from the top edge an invisible strip could never be found again.
+pub const HANDLE_W: f64 = 120.0;
+pub const HANDLE_H: f64 = 14.0;
+
+/// A drop whose top edge lands this close to the top of a display sticks the
+/// island to that edge (flat top, like the notch), in logical px.
+const SNAP_TOP: f64 = 24.0;
+/// Stuck to the top edge this close to the middle → back to the default place.
+const SNAP_CENTRE: f64 = 32.0;
+/// Pointer travel, in physical px, before a press on the island becomes a move.
+const DRAG_THRESHOLD: f64 = 6.0;
 
 pub const WINDOW_LABEL: &str = "island";
 
@@ -70,6 +87,10 @@ pub struct PollGate {
     pub rect: Mutex<IslandRect>,
     /// Mirrors the window flag so we only call into Win32 when it changes.
     ignoring: AtomicBool,
+    /// A press on the island is being watched for a move.
+    drag_armed: AtomicBool,
+    /// The island is following the pointer: nothing else may place the window.
+    moving: AtomicBool,
 }
 
 impl PollGate {
@@ -80,6 +101,8 @@ impl PollGate {
             collapsed: AtomicBool::new(true),
             rect: Mutex::new(IslandRect::default()),
             ignoring: AtomicBool::new(false),
+            drag_armed: AtomicBool::new(false),
+            moving: AtomicBool::new(false),
         }
     }
 
@@ -168,10 +191,24 @@ fn monitor_contains(m: &Monitor, x: f64, y: f64) -> bool {
         && y < (p.y + s.height as i32) as f64
 }
 
-/// The display the island lives on: the primary one, or the one under the cursor.
-fn target_monitor(app: &AppHandle, pref: &str) -> Option<Monitor> {
+fn is_free(s: &Settings) -> bool {
+    s.dock == "free"
+}
+
+/// The display the island lives on: for a free dock the one it was dropped on,
+/// otherwise the primary one or the one under the cursor.
+fn target_monitor(app: &AppHandle, s: &Settings) -> Option<Monitor> {
     let monitors = app.available_monitors().ok()?;
-    if pref == "cursor" {
+    if is_free(s) && !s.dock_monitor.is_empty() {
+        if let Some(m) = monitors
+            .iter()
+            .find(|m| m.name().is_some_and(|n| *n == s.dock_monitor))
+        {
+            return Some(m.clone());
+        }
+        // That display is gone: keep the same spot on the primary one.
+    }
+    if !is_free(s) && s.screen == "cursor" {
         if let Some((cx, cy)) = cursor_physical() {
             if let Some(m) = monitors.iter().find(|m| monitor_contains(m, cx, cy)) {
                 return Some(m.clone());
@@ -184,8 +221,8 @@ fn target_monitor(app: &AppHandle, pref: &str) -> Option<Monitor> {
         .or_else(|| monitors.into_iter().next())
 }
 
-pub fn screen_info(app: &AppHandle, pref: &str) -> ScreenInfo {
-    match target_monitor(app, pref) {
+pub fn screen_info(app: &AppHandle, s: &Settings) -> ScreenInfo {
+    match target_monitor(app, s) {
         Some(m) => {
             let scale = m.scale_factor();
             let p = m.position();
@@ -202,20 +239,75 @@ pub fn screen_info(app: &AppHandle, pref: &str) -> ScreenInfo {
     }
 }
 
-/// Places and sizes the window. `collapsed` picks the wake strip instead of the panel.
-pub fn apply_geometry(app: &AppHandle, pref: &str, collapsed: bool) {
+/// `v` kept inside `lo..=hi`; the middle when the range is empty (a display
+/// smaller than the panel).
+fn clamp_range(v: f64, lo: f64, hi: f64) -> f64 {
+    if lo > hi { (lo + hi) / 2.0 } else { v.clamp(lo, hi) }
+}
+
+/// Work area of a display (the screen minus the taskbar), physical px.
+fn work_area(m: &Monitor) -> (f64, f64, f64, f64) {
+    let wa = m.work_area();
+    (
+        wa.position.x as f64,
+        wa.position.y as f64,
+        (wa.size.width as f64).max(1.0),
+        (wa.size.height as f64).max(1.0),
+    )
+}
+
+/// Free dock: the anchor in physical px, kept where the whole panel fits on the
+/// display, and whether the island grows upwards from it.
+fn free_anchor(m: &Monitor, s: &Settings) -> (f64, f64, bool) {
+    let scale = m.scale_factor();
+    let (wx, wy, ww, wh) = work_area(m);
+    let up = s.dock_y > 0.5;
+    let half_w = PANEL_W * scale / 2.0;
+    let ph = PANEL_H * scale;
+    let ax = clamp_range(wx + s.dock_x * ww, wx + half_w, wx + ww - half_w);
+    let ay = wy + s.dock_y * wh;
+    let ay = if up {
+        clamp_range(ay, wy + ph, wy + wh)
+    } else {
+        clamp_range(ay, wy, wy + wh - ph)
+    };
+    (ax, ay, up)
+}
+
+fn is_moving(app: &AppHandle) -> bool {
+    app.try_state::<crate::Shared>()
+        .is_some_and(|s| s.gate.moving.load(Ordering::Relaxed))
+}
+
+/// Places and sizes the window. `collapsed` picks the wake strip (or, for a free
+/// dock, the visible handle) instead of the panel.
+pub fn apply_geometry(app: &AppHandle, s: &Settings, collapsed: bool) {
+    // Mid-drag the pointer owns the window; the drop places it for good.
+    if is_moving(app) {
+        return;
+    }
     let Some(win) = window(app) else { return };
-    let Some(m) = target_monitor(app, pref) else { return };
+    let Some(m) = target_monitor(app, s) else { return };
 
     let scale = m.scale_factor();
     let mp = *m.position();
     let ms = *m.size();
 
-    let (lw, lh) = if collapsed { (STRIP_W, STRIP_H) } else { (PANEL_W, PANEL_H) };
+    let (lw, lh) = match (collapsed, is_free(s)) {
+        (false, _) => (PANEL_W, PANEL_H),
+        (true, false) => (STRIP_W, STRIP_H),
+        (true, true) => (HANDLE_W, HANDLE_H),
+    };
     let pw = (lw * scale).round().max(1.0) as u32;
     let ph = (lh * scale).round().max(1.0) as u32;
-    let x = mp.x + (ms.width as i32 - pw as i32) / 2;
-    let y = mp.y;
+    let (x, y) = if is_free(s) {
+        let (ax, ay, up) = free_anchor(&m, s);
+        let x = (ax - pw as f64 / 2.0).round() as i32;
+        let y = if up { (ay - ph as f64).round() as i32 } else { ay.round() as i32 };
+        (x, y)
+    } else {
+        (mp.x + (ms.width as i32 - pw as i32) / 2, mp.y)
+    };
 
     let _ = win.set_size(PhysicalSize::new(pw, ph));
     let _ = win.set_position(PhysicalPosition::new(x, y));
@@ -260,11 +352,11 @@ pub fn set_activating(win: &WebviewWindow, activating: bool) {
 /// Position, size and scale of the monitor the island lives on. Any change here
 /// means the island has to be placed again.
 fn current_screen_key(app: &AppHandle) -> Option<(i32, i32, u32, u32, u64)> {
-    let pref = app
+    let settings = app
         .try_state::<crate::Shared>()
-        .map(|s| s.settings.lock().unwrap().screen.clone())
-        .unwrap_or_else(|| "primary".into());
-    let m = target_monitor(app, &pref)?;
+        .map(|s| s.settings.lock().unwrap().clone())
+        .unwrap_or_default();
+    let m = target_monitor(app, &settings)?;
     let p = m.position();
     let size = m.size();
     Some((p.x, p.y, size.width, size.height, m.scale_factor().to_bits()))
@@ -365,4 +457,142 @@ pub fn set_ignore_cursor(app: &AppHandle, ignore: bool) {
     if let Some(win) = window(app) {
         let _ = win.set_ignore_cursor_events(ignore);
     }
+}
+
+// ── Moving the island ────────────────────────────────────────────────────────
+
+/// Called on a press on the island (not on a button). Watches the left button
+/// from the Win32 side: if the pointer travels past the threshold before the
+/// release, the window follows it, and the drop becomes the new place.
+///
+/// Emits `dock-drag` with "start" when the move begins, then "end" after a move
+/// or "click" when the button came up without one — the front end holds back a
+/// compact-island click until then, so a move never opens the island.
+pub fn begin_drag(app: AppHandle) {
+    let Some(shared) = app.try_state::<crate::Shared>() else { return };
+    let gate = shared.gate.clone();
+    if gate.drag_armed.swap(true, Ordering::AcqRel) {
+        return;
+    }
+    std::thread::spawn(move || {
+        let moved = follow_pointer(&app, &gate);
+        gate.moving.store(false, Ordering::Release);
+        if moved {
+            finish_drag(&app);
+        }
+        gate.drag_armed.store(false, Ordering::Release);
+        let _ = app.emit_to(WINDOW_LABEL, "dock-drag", if moved { "end" } else { "click" });
+    });
+}
+
+/// Moves the window with the pointer until the button is released. True when it moved.
+fn follow_pointer(app: &AppHandle, gate: &PollGate) -> bool {
+    let Some(win) = window(app) else { return false };
+    let Some((sx, sy)) = cursor_physical() else { return false };
+    let Ok(start) = win.outer_position() else { return false };
+    let mut moved = false;
+    // The press may already be over by the time this thread runs.
+    while left_button_down() {
+        std::thread::sleep(Duration::from_millis(8));
+        let Some((cx, cy)) = cursor_physical() else { continue };
+        let (dx, dy) = (cx - sx, cy - sy);
+        if !moved {
+            if dx.abs().max(dy.abs()) < DRAG_THRESHOLD {
+                continue;
+            }
+            moved = true;
+            gate.moving.store(true, Ordering::Release);
+            let _ = app.emit_to(WINDOW_LABEL, "dock-drag", "start");
+        }
+        let _ = win.set_position(PhysicalPosition::new(
+            start.x + dx.round() as i32,
+            start.y + dy.round() as i32,
+        ));
+    }
+    moved
+}
+
+/// Turns where the island was dropped into the stored dock, then places the
+/// window properly (kept on screen, growing the right way).
+fn finish_drag(app: &AppHandle) {
+    let Some(shared) = app.try_state::<crate::Shared>() else { return };
+    let Some(win) = window(app) else { return };
+    let (Ok(pos), Ok(size)) = (win.outer_position(), win.outer_size()) else { return };
+    let scale = win.scale_factor().unwrap_or(1.0);
+    let old = shared.settings.lock().unwrap().clone();
+    let was_up = is_free(&old) && old.dock_y > 0.5;
+
+    // Where the island shape itself ended up, in physical px.
+    let ih = shared.gate.rect.lock().unwrap().h.max(1.0) * scale;
+    let ax = pos.x as f64 + size.width as f64 / 2.0;
+    let top = if was_up { pos.y as f64 + size.height as f64 - ih } else { pos.y as f64 };
+    let bottom = top + ih;
+    let cy = (top + bottom) / 2.0;
+
+    let monitors = app.available_monitors().unwrap_or_default();
+    let primary = app.primary_monitor().ok().flatten();
+    let Some(m) = monitors
+        .iter()
+        .find(|m| monitor_contains(m, ax, cy))
+        .cloned()
+        .or_else(|| primary.clone())
+        .or_else(|| monitors.first().cloned())
+    else {
+        return;
+    };
+    let ms = m.scale_factor();
+    let (wx, wy, ww, wh) = work_area(&m);
+
+    let mut next = old.clone();
+    next.dock = "free".into();
+    next.dock_monitor = m.name().cloned().unwrap_or_default();
+    next.dock_x = ((ax - wx) / ww).clamp(0.0, 1.0);
+    if top - wy <= SNAP_TOP * ms {
+        // Stuck to the top edge. Near the middle of the display the island would
+        // live on anyway, that is simply the default place again.
+        next.dock_y = 0.0;
+        if (ax - (wx + ww / 2.0)).abs() <= SNAP_CENTRE * ms {
+            next.dock_x = 0.5;
+            let is_primary = primary.as_ref().is_some_and(|p| p.name() == m.name());
+            if old.screen == "primary" && is_primary {
+                next.dock = "top".into();
+            }
+        }
+    } else if (cy - wy) / wh > 0.5 {
+        // Lower half: anchored on its bottom edge, opens upwards.
+        next.dock_y = ((bottom - wy) / wh).clamp(0.5001, 1.0);
+    } else {
+        next.dock_y = ((top - wy) / wh).clamp(0.0, 0.5);
+    }
+
+    store_dock(app, next);
+}
+
+/// Saves a new dock, re-places the window and tells both windows.
+pub fn store_dock(app: &AppHandle, next: Settings) {
+    let Some(shared) = app.try_state::<crate::Shared>() else { return };
+    *shared.settings.lock().unwrap() = next.clone();
+    if let Err(err) = crate::settings::save(&next) {
+        eprintln!("[coucou] could not save settings: {err}");
+    }
+    crate::log::line(format!(
+        "dock: {} x={:.3} y={:.3} on {:?}",
+        next.dock, next.dock_x, next.dock_y, next.dock_monitor
+    ));
+    let collapsed = shared.gate.collapsed.load(Ordering::Relaxed);
+    apply_geometry(app, &next, collapsed);
+    // The resize can leave the click-through flag stale.
+    shared.gate.forget_ignore_state();
+    let _ = app.emit("settings-changed", next);
+}
+
+/// Back to the top centre of the display.
+pub fn reset_dock(app: &AppHandle) {
+    let Some(shared) = app.try_state::<crate::Shared>() else { return };
+    let mut next = shared.settings.lock().unwrap().clone();
+    next.dock = "top".into();
+    next.dock_x = 0.5;
+    next.dock_y = 0.0;
+    next.dock_monitor.clear();
+    store_dock(app, next);
 }

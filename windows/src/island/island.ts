@@ -34,6 +34,21 @@ const UPLOAD_VIEWS: ReadonlySet<IslandViewName> = new Set(["upload", "uploading"
 /** Seconds between the drop and the moment the progress bar starts filling. */
 const PRE_PROGRESS = USC.T_PROG_START - USC.T_DROP;
 
+/**
+ * True for a press on something that has its own use for the mouse — a button,
+ * a field, a link, a scrollbar — which must never start moving the island.
+ */
+function isControl(e: MouseEvent): boolean {
+  const el = e.target as HTMLElement | null;
+  if (!el || !el.closest) return false;
+  if (el.closest("button, a, input, textarea, select, label, [contenteditable], [data-no-drag]")) {
+    return true;
+  }
+  // A press on a scrollbar lands on the scrolling element, past its client area.
+  return (el.clientWidth > 0 && e.offsetX > el.clientWidth) ||
+    (el.clientHeight > 0 && e.offsetY > el.clientHeight);
+}
+
 const modeOrder = (m: IslandMode) => (m === "hidden" ? 0 : m === "compact" ? 1 : 2);
 
 export class Island {
@@ -79,6 +94,16 @@ export class Island {
   /** Last shape handed to Rust for the click-through test. */
   private pushedRect = { x: -1, y: -1, w: -1, h: -1 };
   private homeCollapseAt: number | null = null;
+
+  // Where the island sits (Settings.dock*). Free + lower half → it grows upwards
+  // from its bottom edge; anywhere but stuck to a top edge → all corners round.
+  private dockUp = false;
+  private dockAttached = true;
+  /** A compact-island click held back until we know the press was not a move. */
+  private pendingClick = false;
+  private pressAt = { x: 0, y: 0 };
+  /** Swallows the click the browser fires at the end of a move. */
+  private suppressClick = false;
 
   // Bot hover → love (IslandWindowController.botHoverIn)
   private botHovering = false;
@@ -539,7 +564,7 @@ export class Island {
     const r = this.radius.value;
     this.islandEl.style.width = `${w}px`;
     this.islandEl.style.height = `${hh}px`;
-    this.islandEl.style.borderRadius = `0 0 ${r}px ${r}px`;
+    this.islandEl.style.borderRadius = this.dockAttached ? `0 0 ${r}px ${r}px` : `${r}px`;
     this.islandEl.style.transform = `translateX(-50%)`;
     // These follow the island as it resizes, so they belong here rather than in
     // the state-driven DOM sync.
@@ -548,9 +573,12 @@ export class Island {
     this.greetingCanvas.style.left = `${(w - EXPANDED_W) / 2}px`;
     this.uploadCanvas.el.style.left = `${(w - EXPANDED_W) / 2}px`;
 
-    const rect = { x: (PANEL_W - w) / 2, y: 0, w, h: hh };
+    const rect = this.islandRect();
     const p = this.pushedRect;
-    if (Math.abs(p.x - rect.x) > 0.5 || Math.abs(p.w - rect.w) > 0.5 || Math.abs(p.h - rect.h) > 0.5) {
+    if (
+      Math.abs(p.x - rect.x) > 0.5 || Math.abs(p.y - rect.y) > 0.5 ||
+      Math.abs(p.w - rect.w) > 0.5 || Math.abs(p.h - rect.h) > 0.5
+    ) {
       this.pushedRect = rect;
       void Bridge.setIslandRect(rect.x, rect.y, rect.w, rect.h);
     }
@@ -560,7 +588,7 @@ export class Island {
   private islandRect(): { x: number; y: number; w: number; h: number } {
     const w = this.width.value;
     const hh = this.height.value;
-    return { x: (PANEL_W - w) / 2, y: 0, w, h: hh };
+    return { x: (PANEL_W - w) / 2, y: this.dockUp ? PANEL_H - hh : 0, w, h: hh };
   }
 
   // ── Window collapse (hidden → tiny wake strip, zero polling) ────────────────
@@ -598,8 +626,16 @@ export class Island {
     this.islandEl.addEventListener("mousedown", (e) => {
       Sound.resume();
       State.lastActivity = performance.now();
+      // A press anywhere but on a control may be the start of a move.
+      const movable = IS_TAURI && e.button === 0 && !isControl(e);
+      if (movable) {
+        this.pressAt = { x: e.screenX, y: e.screenY };
+        void Bridge.beginDockDrag();
+      }
       if (State.mode !== "expanded") {
-        this.fsm.click();
+        // Opening the island under a move would be jarring: wait for the release.
+        if (movable) this.pendingClick = true;
+        else this.fsm.click();
         return;
       }
       if (this.isBotHit(e.clientX, e.clientY)) {
@@ -615,6 +651,40 @@ export class Island {
           return;
         }
         this.engine.slap();
+      }
+    });
+
+    window.addEventListener("mouseup", (e) => {
+      if (!this.pendingClick) return;
+      if (Math.hypot(e.screenX - this.pressAt.x, e.screenY - this.pressAt.y) > 4) return;
+      this.pendingClick = false;
+      this.fsm.click();
+    });
+    window.addEventListener(
+      "click",
+      (e) => {
+        if (!this.suppressClick) return;
+        this.suppressClick = false;
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      true,
+    );
+    void onEvent<string>("dock-drag", (what) => {
+      if (what === "start") {
+        this.pendingClick = false;
+        this.suppressClick = true;
+        this.root.classList.add("dock-moving");
+        return;
+      }
+      this.root.classList.remove("dock-moving");
+      if (what === "end") {
+        // The click, if any, comes right after the release.
+        window.setTimeout(() => (this.suppressClick = false), 300);
+      } else if (what === "click" && this.pendingClick) {
+        // The mouseup never reached the page; the press was still a click.
+        this.pendingClick = false;
+        this.fsm.click();
       }
     });
 
@@ -964,6 +1034,13 @@ export class Island {
   }
 
   applySettings() {
+    const s = State.settings;
+    const free = s.dock === "free";
+    this.dockUp = free && s.dockY > 0.5;
+    this.dockAttached = !free || s.dockY <= 0;
+    this.root.classList.toggle("dock-free", free);
+    this.root.classList.toggle("dock-up", this.dockUp);
+    this.applyGeometry();
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;
