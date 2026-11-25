@@ -47,7 +47,7 @@ struct SettingsView: View {
             switch await UpdateChecker.check() {
             case .failed:
                 updateStatus = "Could not reach GitHub."
-            case .none:
+            case .unpublished:
                 updateStatus = "No versions have been published yet."
             case let .current(v):
                 updateStatus = "You have the latest (\(v))."

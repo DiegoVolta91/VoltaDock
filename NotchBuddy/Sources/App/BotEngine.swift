@@ -376,39 +376,6 @@ final class BotEngine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                 SoundEngine.shared.play("annoyed")
             }
-        case .cheer:
-            // A hop with confetti: the whole routine is done, or a block finished.
-            anim("oy", keys: [
-                TweenKey(target: -0.38, duration: 150, ease: Ease.out),
-                TweenKey(target: 0.04,  duration: 240, ease: Ease.inOut),
-                TweenKey(target: -0.18, duration: 130, ease: Ease.out),
-                TweenKey(target: 0,     duration: 200, ease: Ease.back),
-            ])
-            anim("sy", keys: [
-                TweenKey(target: 0.86, duration: 90,  ease: Ease.out),
-                TweenKey(target: 1.16, duration: 160, ease: Ease.out),
-                TweenKey(target: 1,    duration: 260, ease: Ease.back),
-            ])
-            anim("blush", keys: [
-                TweenKey(target: 0.7, duration: 200, ease: Ease.out),
-                TweenKey(target: 0.7, duration: CGFloat((duration - 0.5) * 1000), ease: Ease.lin),
-                TweenKey(target: 0,   duration: 300, ease: Ease.inOut),
-            ])
-            emit(.star, count: 4)
-            emit(.spark, count: 4)
-        case .worried:
-            // Wide eyes, a small shake and a drop of sweat.
-            anim("yaw", keys: [
-                TweenKey(target: -0.3, duration: 70,  ease: Ease.out),
-                TweenKey(target: 0.3,  duration: 120, ease: Ease.inOut),
-                TweenKey(target: -0.2, duration: 100, ease: Ease.inOut),
-                TweenKey(target: 0,    duration: 160, ease: Ease.out),
-            ])
-            anim("es", keys: [
-                TweenKey(target: 1.12, duration: 140, ease: Ease.out),
-                TweenKey(target: 1,    duration: 500, ease: Ease.inOut),
-            ])
-            emit(.sweat, count: 2)
         }
     }
 
@@ -657,6 +624,39 @@ final class BotEngine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                 SoundEngine.shared.play("annoyed")
             }
+        case .cheer:
+            // A hop with confetti: the whole routine is done, or a block finished.
+            anim("oy", keys: [
+                TweenKey(target: -0.38, duration: 150, ease: Ease.out),
+                TweenKey(target: 0.04,  duration: 240, ease: Ease.inOut),
+                TweenKey(target: -0.18, duration: 130, ease: Ease.out),
+                TweenKey(target: 0,     duration: 200, ease: Ease.back),
+            ])
+            anim("sy", keys: [
+                TweenKey(target: 0.86, duration: 90,  ease: Ease.out),
+                TweenKey(target: 1.16, duration: 160, ease: Ease.out),
+                TweenKey(target: 1,    duration: 260, ease: Ease.back),
+            ])
+            anim("blush", keys: [
+                TweenKey(target: 0.7, duration: 200, ease: Ease.out),
+                TweenKey(target: 0.7, duration: CGFloat((duration - 0.5) * 1000), ease: Ease.lin),
+                TweenKey(target: 0,   duration: 300, ease: Ease.inOut),
+            ])
+            emit(.star, count: 4)
+            emit(.spark, count: 4)
+        case .worried:
+            // Wide eyes, a small shake and a drop of sweat.
+            anim("yaw", keys: [
+                TweenKey(target: -0.3, duration: 70,  ease: Ease.out),
+                TweenKey(target: 0.3,  duration: 120, ease: Ease.inOut),
+                TweenKey(target: -0.2, duration: 100, ease: Ease.inOut),
+                TweenKey(target: 0,    duration: 160, ease: Ease.out),
+            ])
+            anim("es", keys: [
+                TweenKey(target: 1.12, duration: 140, ease: Ease.out),
+                TweenKey(target: 1,    duration: 500, ease: Ease.inOut),
+            ])
+            emit(.sweat, count: 2)
         }
     }
 

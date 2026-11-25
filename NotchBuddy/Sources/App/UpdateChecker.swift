@@ -9,7 +9,7 @@ enum UpdateChecker {
     enum Outcome: Equatable {
         case newer(version: String, url: String)
         case current(version: String)
-        case none        // nothing published yet
+        case unpublished   // nothing published yet
         case failed
     }
 
@@ -34,11 +34,11 @@ enum UpdateChecker {
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         guard let (data, response) = try? await URLSession.shared.data(for: req),
               let http = response as? HTTPURLResponse else { return .failed }
-        if http.statusCode == 404 { return .none }
+        if http.statusCode == 404 { return .unpublished }
         guard http.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return .failed }
         let tag = json["tag_name"] as? String ?? ""
-        if tag.isEmpty { return .none }
+        if tag.isEmpty { return .unpublished }
         var page = json["html_url"] as? String ?? ""
         // Only ever hand the UI a link on GitHub itself.
         if !page.hasPrefix("https://github.com/DiegoVolta91/VoltaDock/") { page = "" }
