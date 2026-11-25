@@ -26,7 +26,7 @@ enum BotState: String, CaseIterable {
 // MARK: - Bot Emote
 
 enum BotEmote: String, CaseIterable {
-    case love, surprised, proud, wink, yawn, happy, annoyed
+    case love, surprised, proud, wink, yawn, happy, annoyed, cheer, worried
 }
 
 // MARK: - Approval info (pending PermissionRequest from Claude Code)

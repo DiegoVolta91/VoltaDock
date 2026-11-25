@@ -150,6 +150,10 @@ export interface Settings {
   dockMonitor: string;
   /** A paired iPad may connect over the local network. Off by default. */
   remoteEnabled: boolean;
+  /** Volt says "Claude terminó" and the like out loud. Off by default. */
+  voiceEnabled: boolean;
+  /** Look for a newer release on GitHub at launch. Off by default. */
+  updateCheck: boolean;
   /** Office files are read with docpack before they go to Claude. */
   docpackEnabled: boolean;
 }
@@ -173,6 +177,8 @@ export const DEFAULT_SETTINGS: Settings = {
   dockPos: 0.5,
   dockMonitor: "",
   remoteEnabled: false,
+  voiceEnabled: false,
+  updateCheck: false,
   docpackEnabled: true,
 };
 

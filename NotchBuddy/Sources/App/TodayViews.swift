@@ -47,6 +47,7 @@ struct TodayCardView: View {
         var parts: [String] = []
         if goalsTotal > 0 { parts.append("\(store.goalsDone)/\(goalsTotal) goals") }
         if open > goalsOpen { parts.append("\(open - goalsOpen) to do") }
+        if !store.habits.isEmpty { parts.append("\(store.habitsDoneToday)/\(store.habits.count) habits") }
         if let next = store.nextReminder, let due = next.dueAt {
             parts.append("next \(TodayFormat.due(due).lowercased())")
         }
@@ -84,7 +85,7 @@ struct TodayCardView: View {
                         .lineLimit(1)
                         .transition(.opacity)
                 }
-                TextField(flash == nil ? (asGoal ? "Goal of the day" : "To-do, or “in 10 min stretch”") : "", text: $draft)
+                TextField(flash == nil ? (asGoal ? "Goal of the day" : "To-do, “every Monday at 9 …” or “habit …”") : "", text: $draft)
                     .textFieldStyle(.plain)
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#C5C8CD"))
@@ -115,10 +116,14 @@ struct TodayCardView: View {
     }
 
     private func submit() {
-        guard let item = store.add(draft, asGoal: asGoal) else { return }
+        guard let added = store.addLine(draft, asGoal: asGoal) else { return }
         draft = ""
-        let when = item.dueAt.map { " · \(TodayFormat.due($0))" } ?? ""
-        withAnimation(.easeOut(duration: 0.2)) { flash = "Added\(when)" }
+        var message = "Habit added"
+        if case let .item(item) = added {
+            let when = item.dueAt.map { " · \(TodayFormat.due($0))" } ?? ""
+            message = "Added\(when)"
+        }
+        withAnimation(.easeOut(duration: 0.2)) { flash = message }
         SoundEngine.shared.play("pop")
         NotificationCenter.default.post(name: .triggerEmote, object: BotEmote.happy)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
@@ -258,8 +263,8 @@ struct TodayListView: View {
             }
             .padding(.top, 6).padding(.leading, 108).padding(.trailing, 36)
 
-            if rows.isEmpty {
-                Text("Nothing yet. Type a to-do, or “at 9 call Ana”.")
+            if rows.isEmpty && store.habits.isEmpty {
+                Text("Nothing yet. Type a to-do, “at 9 call Ana” or “habit drink water”.")
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#6B7079"))
                     .padding(.leading, 108).padding(.trailing, 12).padding(.top, 8)
@@ -267,6 +272,14 @@ struct TodayListView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 1) {
                         ForEach(rows) { item in TodayRow(item: item, store: store) }
+                        if !store.habits.isEmpty {
+                            Text("HABITS")
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .tracking(0.6)
+                                .foregroundColor(Color(hex: "#6B7079"))
+                                .padding(.horizontal, 8).padding(.top, 8).padding(.bottom, 2)
+                            ForEach(store.habits) { habit in HabitRow(habit: habit, store: store) }
+                        }
                     }
                     .padding(.bottom, 6)
                 }
@@ -313,12 +326,59 @@ private struct TodayRow: View {
                 .layoutPriority(1)
             Spacer(minLength: 4)
             if let due = item.dueAt, !item.done {
-                Text(TodayFormat.due(due))
+                Text((item.repeatRule != nil ? "↻ " : "") + TodayFormat.due(due))
                     .font(.system(size: 9.5))
                     .foregroundColor(Color(hex: item.firedAt == nil ? "#8E939C" : "#F5A524"))
             }
             if hovered {
                 Button { store.remove(item.id) } label: {
+                    Image(systemName: "xmark").font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(Color(hex: "#6B7079"))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 3)
+        .background(Color.white.opacity(hovered ? 0.04 : 0))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .onHover { hovered = $0 }
+    }
+}
+
+private struct HabitRow: View {
+    let habit: Habit
+    @ObservedObject var store: TodayStore
+    @State private var hovered = false
+
+    var body: some View {
+        let done = store.habitDoneToday(habit)
+        let streak = store.streak(habit)
+        HStack(spacing: 7) {
+            Button { store.toggleHabit(habit.id) } label: {
+                ZStack {
+                    Circle().stroke(Color(hex: done ? restColor : "#4B5563"), lineWidth: 1.2)
+                    if done {
+                        Circle().fill(Color(hex: restColor))
+                        Image(systemName: "checkmark").font(.system(size: 6, weight: .heavy)).foregroundColor(.black)
+                    }
+                }
+                .frame(width: 12, height: 12)
+            }
+            .buttonStyle(.plain)
+
+            Text(habit.name)
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#C5C8CD"))
+                .lineLimit(1).truncationMode(.tail)
+                .layoutPriority(1)
+            Spacer(minLength: 4)
+            if streak > 0 {
+                Text("\(streak) day\(streak == 1 ? "" : "s")")
+                    .font(.system(size: 9.5))
+                    .foregroundColor(Color(hex: streak >= 3 ? focusColor : "#8E939C"))
+            }
+            if hovered {
+                Button { store.removeHabit(habit.id) } label: {
                     Image(systemName: "xmark").font(.system(size: 7.5, weight: .bold))
                         .foregroundColor(Color(hex: "#6B7079"))
                 }
@@ -365,6 +425,7 @@ struct TodayAlertView: View {
         switch store.currentAlert {
         case .focusDone: return .green
         case .restDone:  return .indigo
+        case .update:    return .indigo
         default:         return .cyan
         }
     }
@@ -378,6 +439,8 @@ struct TodayAlertView: View {
             return "focus block done · \(n) today"
         case .restDone:
             return "break is over"
+        case let .update(version, _):
+            return "new version · \(version)"
         case nil:
             return ""
         }
@@ -388,6 +451,7 @@ struct TodayAlertView: View {
         case let .reminder(_, text, _, _): return text
         case .focusDone:                   return "Nice work. Time for a short break."
         case .restDone:                    return "Ready for another focus block?"
+        case .update:                      return "There is a new version of VoltaDock."
         case nil:                          return ""
         }
     }
@@ -396,6 +460,7 @@ struct TodayAlertView: View {
         switch store.currentAlert {
         case .focusDone: return "Take 5"
         case .restDone:  return "Focus 25 min"
+        case .update:    return "View"
         default:         return "Done"
         }
     }
@@ -404,6 +469,7 @@ struct TodayAlertView: View {
         switch store.currentAlert {
         case .focusDone: return "Later"
         case .restDone:  return "Not now"
+        case .update:    return "Later"
         default:         return "Snooze 10 min"
         }
     }

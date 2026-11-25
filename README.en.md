@@ -41,7 +41,10 @@ Meet **Volt**: a little battery with a lightning-bolt antenna that pops out of y
 - 💬 **Ask Claude anything** — built-in chat, straight from the notch.
 - 📎 **Drop a file on the notch** — Volt turns into a box and swallows it, then ask a question about it or send it by email *(email: macOS, Mail.app)*.
 - 🪟 **Drag Volt onto any window** — attach that window as context for Claude *(macOS)*.
-- ⏱️ **Today** — a 25-minute focus timer with its countdown under the island, quick to-dos and reminders typed in plain words (“in 10 min stretch”, “tomorrow at 9 dentist”, “a las 17:30 gym”). Reminders that came due while the computer slept show up when it wakes. Everything stays on your machine. Turn the **Today** pill on in Settings.
+- ⏱️ **Today** — a 25-minute focus timer with its countdown under the island, quick to-dos and reminders typed in plain words (“in 10 min stretch”, “tomorrow at 9 dentist”, “a las 17:30 gym”). Reminders that came due while the computer slept show up when it wakes. Reminders can repeat (“every Monday at 9 check mail”, “every 2 hours stretch”), and you can keep habits with streaks by typing “habit drink water”. Everything stays on your machine. Turn the **Today** pill on in Settings.
+- 🗣️ **Optional voice** — Volt says “Claude is done” or “needs your permission” out loud, with your system voice. Off by default.
+- 🔔 **New-version notice** — if you turn it on, it checks once at launch whether GitHub has a newer release. Off by default.
+- 🧹 **Delete my data** — a button in Settings that erases what the app keeps on your computer (to-dos, habits, chat, file copies and keys).
 - 🔌 **Integrations** — Stripe payments, n8n workflows, GitHub, Vercel deployments, Resend emails, Notion, Cal.com. Each one gets its own little colored Volt.
 - 🎭 **A real character** — idle breathing, blinks, eyes on a sphere that follow your mouse, emotes, 28 handcrafted sounds, a greeting on launch.
 - 📱 **iPad companion** *(in development)* — watch and approve from an iPad on the same Wi-Fi network.

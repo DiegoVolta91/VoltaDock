@@ -60,7 +60,7 @@ final class KeychainStore: @unchecked Sendable {
     private var cache: [String: String] = [:]
     private let lock = NSLock()
 
-    private static let allKeys = [
+    static let allKeys = [
         "anthropic-api-key",
         "resend-api-key", "resend-from",
         "n8n-url", "n8n-api-key",

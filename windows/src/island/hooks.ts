@@ -6,6 +6,7 @@
 import { Bridge, onEvent } from "../core/bridge";
 import { refreshUsage } from "../core/panels";
 import { Sound } from "../core/sound";
+import { Voice } from "../core/voice";
 import { State } from "../core/state";
 import type { Island } from "./island";
 import { tr } from "../i18n";
@@ -332,10 +333,12 @@ function handleHook(island: Island, payload: HookPayload) {
       if (lower.includes("rate limit") || lower.includes("limite d") || isLimitText(message)) {
         State.updateTask(CLAUDE_ID, "ratelimit");
         Sound.play("rate");
+        Voice.say(tr.voice.limit);
       } else if (isQuestion(payload)) {
         State.updateTask(CLAUDE_ID, "question");
         State.appendStep(CLAUDE_ID, message);
         Sound.play("question");
+        Voice.say(tr.voice.question);
         // Same rule as a finished session: the focused agent opens the card, any
         // other one raises its badge and wakes the island so it can be seen.
         if (focused) surface("question", true);
@@ -356,6 +359,7 @@ function handleHook(island: Island, payload: HookPayload) {
         if (summary) State.appendStep(CLAUDE_ID, summary.split(/\r?\n/)[0].slice(0, 140));
       }
       Sound.play("finish");
+      Voice.say(tr.voice.finished);
       if (focused) surface("finished", true);
       else State.setPillBadge(CLAUDE_ID, "finished");
       window.setTimeout(() => {
@@ -376,6 +380,8 @@ function handleHook(island: Island, payload: HookPayload) {
         );
       }
       Sound.play(limited ? "rate" : "error");
+      Voice.say(limited ? tr.voice.limit : tr.voice.error);
+      if (!limited) island.emote("worried");
       if (focused) surface("error", true);
       else State.setPillBadge(CLAUDE_ID, "error");
       break;
@@ -429,6 +435,7 @@ function handleHook(island: Island, payload: HookPayload) {
       State.updateTask(CLAUDE_ID, "approval");
       State.isPinned = true;
       Sound.play("approval");
+      Voice.say(tr.voice.approval);
       if (focused) {
         island.alert("approval");
       } else {

@@ -2,7 +2,8 @@
 // Everything stays on this PC (localStorage); nothing is sent anywhere.
 // Port of TodayStore.swift — keep the two in step.
 
-import { parseQuickAdd } from "./quickadd";
+import { nextDue, parseQuickAdd, type Repeat } from "./quickadd";
+import { Voice } from "./voice";
 import { tr } from "../i18n";
 import { State } from "./state";
 import { Bridge, onEvent } from "./bridge";
@@ -17,8 +18,19 @@ export interface TodayItem {
   createdAt: number;
   /** Set once the reminder has been shown, so it never fires twice. */
   firedAt: number | null;
+  /** A reminder that comes back ("cada lunes a las 9"); it never ends up done. */
+  repeat?: Repeat | null;
   /** A goal of the day ("objetivo"): shown with a done counter on the compact island. */
   goal?: boolean;
+}
+
+/** A small daily routine with a streak ("beber agua"). */
+export interface Habit {
+  id: string;
+  name: string;
+  createdAt: number;
+  /** Days it was done, as "YYYY-MM-DD"; only the last 120 are kept. */
+  days: string[];
 }
 
 export type FocusPhase = "idle" | "focus" | "rest";
@@ -36,13 +48,18 @@ export interface FocusSession {
 export type TodayAlert =
   | { kind: "reminder"; id: string; text: string; dueAt: number; late: boolean }
   | { kind: "focusDone"; blocksToday: number }
-  | { kind: "restDone" };
+  | { kind: "restDone" }
+  | { kind: "update"; version: string; url: string };
 
 /** What the island does for the store: show the alert card, react, close. */
 export interface TodayHost {
   showAlert(): void;
   collapse(): void;
-  emote(name: "wink" | "proud" | "happy"): void;
+  emote(name: "wink" | "proud" | "happy" | "cheer" | "worried"): void;
+  /** The little green tick over Volt: "done, it worked". */
+  confirm(): void;
+  /** Opens a link (the new release page). */
+  openUrl(url: string): void;
   sound(name: "question" | "finish" | "greet" | "work" | "yawn"): void;
 }
 
@@ -56,6 +73,8 @@ const LATE_MS = 2 * 60_000;
 const ITEMS_KEY = "voltadock.today.items";
 const FOCUS_KEY = "voltadock.today.focus";
 const BLOCKS_KEY = "voltadock.today.blocks";
+const HABITS_KEY = "voltadock.today.habits";
+const KEEP_DAYS = 120;
 
 const GOAL_PREFIX = /^(?:!+\s*|(?:objetivo|goal)\s*:\s*)/i;
 
@@ -121,6 +140,7 @@ class TodayStore {
   items: TodayItem[] = [];
   focus: FocusSession = { ...IDLE };
   blocksByDay: Record<string, number> = {};
+  habits: Habit[] = [];
   currentAlert: TodayAlert | null = null;
 
   host: TodayHost | null = null;
@@ -133,6 +153,7 @@ class TodayStore {
     this.items = read<TodayItem[]>(ITEMS_KEY, []);
     this.focus = { ...IDLE, ...read<Partial<FocusSession>>(FOCUS_KEY, {}) };
     this.blocksByDay = read<Record<string, number>>(BLOCKS_KEY, {});
+    this.habits = read<Habit[]>(HABITS_KEY, []);
     // Ticked items go away the day after; block counts are kept for two weeks.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -207,6 +228,17 @@ class TodayStore {
 
   // ── Items ──────────────────────────────────────────────────────────────────
 
+  /** The quick-add line: "hábito beber agua" starts a habit, anything else is a to-do. */
+  addLine(raw: string, asGoal = false): { kind: "item"; item: TodayItem } | { kind: "habit"; habit: Habit } | null {
+    const m = raw.trim().match(/^(?:h[áa]bito|habit)s?:?\s+(.+)$/i);
+    if (m) {
+      const habit = this.addHabit(m[1]);
+      return habit ? { kind: "habit", habit } : null;
+    }
+    const item = this.add(raw, asGoal);
+    return item ? { kind: "item", item } : null;
+  }
+
   add(raw: string, asGoal = false): TodayItem | null {
     // "!" or "objetivo:" / "goal:" in front makes it a goal of the day.
     const m = raw.trim().match(GOAL_PREFIX);
@@ -224,6 +256,7 @@ class TodayStore {
       doneAt: null,
       createdAt: Date.now(),
       firedAt: null,
+      repeat: parsed.repeat,
       goal: asGoal,
     };
     this.items.push(item);
@@ -236,7 +269,90 @@ class TodayStore {
     if (!i) return;
     i.done = !i.done;
     i.doneAt = i.done ? Date.now() : null;
+    if (i.done) this.host?.confirm();
     this.commit();
+  }
+
+  // ── Habits ─────────────────────────────────────────────────────────────────
+
+  addHabit(raw: string): Habit | null {
+    const name = raw.trim().replace(/\s+/g, " ");
+    if (!name) return null;
+    const title = name.charAt(0).toUpperCase() + name.slice(1);
+    const habit: Habit = { id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, name: title, createdAt: Date.now(), days: [] };
+    this.habits.push(habit);
+    this.commit();
+    return habit;
+  }
+
+  removeHabit(id: string) {
+    this.habits = this.habits.filter((h) => h.id !== id);
+    this.commit();
+  }
+
+  habitDoneToday(h: Habit): boolean {
+    return h.days.includes(dayKey(Date.now()));
+  }
+
+  get habitsDoneToday(): number {
+    return this.habits.filter((h) => this.habitDoneToday(h)).length;
+  }
+
+  /**
+   * Consecutive days up to today. A day not yet ticked does not break the run
+   * until it is over, so the streak survives until midnight.
+   */
+  streak(h: Habit): number {
+    const done = new Set(h.days);
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    if (!done.has(dayKey(d.getTime()))) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (done.has(dayKey(d.getTime()))) {
+      n++;
+      d.setDate(d.getDate() - 1);
+    }
+    return n;
+  }
+
+  toggleHabit(id: string) {
+    const h = this.habits.find((x) => x.id === id);
+    if (!h) return;
+    const key = dayKey(Date.now());
+    if (h.days.includes(key)) {
+      h.days = h.days.filter((k) => k !== key);
+      this.commit();
+      return;
+    }
+    h.days.push(key);
+    h.days.sort();
+    if (h.days.length > KEEP_DAYS) h.days = h.days.slice(-KEEP_DAYS);
+    this.commit();
+    // The whole routine ticked off: a bigger celebration than a single tick.
+    if (this.habitsDoneToday === this.habits.length) {
+      this.host?.emote("cheer");
+      this.host?.sound("finish");
+    } else {
+      this.host?.confirm();
+    }
+  }
+
+  /** "Borrar mis datos": the lists are emptied, the preferences stay. */
+  reset() {
+    this.items = [];
+    this.habits = [];
+    this.focus = { ...IDLE };
+    this.blocksByDay = {};
+    this.currentAlert = null;
+    this.pending = [];
+    State.isPinned = false;
+    this.commit();
+  }
+
+  /** A newer release exists: shown once as a card, and not again for the same version. */
+  announceUpdate(version: string, url: string) {
+    this.pending.push({ kind: "update", version, url });
+    this.presentNext();
   }
 
   remove(id: string) {
@@ -302,8 +418,24 @@ class TodayStore {
     this.currentAlert = null;
     State.isPinned = false;
     if (alert.kind === "reminder") {
-      if (action === "primary") this.markDone(alert.id);
-      else this.snooze(alert.id);
+      const item = this.items.find((x) => x.id === alert.id);
+      if (action === "primary") {
+        // A repeating reminder has already moved on to its next time.
+        if (!item?.repeat) this.markDone(alert.id);
+        else this.host?.confirm();
+      } else if (item?.repeat) {
+        // Snoozing one occurrence must not push the whole series back.
+        this.items.push({
+          id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+          text: alert.text, dueAt: Date.now() + 10 * 60_000, done: false, doneAt: null,
+          createdAt: Date.now(), firedAt: null, repeat: null,
+        });
+        this.commit();
+      } else {
+        this.snooze(alert.id);
+      }
+    } else if (alert.kind === "update") {
+      if (action === "primary") this.host?.openUrl(alert.url);
     } else if (action === "primary") {
       if (alert.kind === "focusDone") this.startRest();
       else this.startFocus();
@@ -353,10 +485,15 @@ class TodayStore {
     State.isPinned = true;
     if (next.kind === "reminder") {
       this.host.sound("question");
-      this.host.emote("wink");
+      this.host.emote(next.late ? "worried" : "wink");
+      Voice.say(tr.voice.reminder(next.text));
+    } else if (next.kind === "update") {
+      this.host.sound("greet");
+      this.host.emote("happy");
     } else if (next.kind === "focusDone") {
       this.host.sound("finish");
-      this.host.emote("proud");
+      this.host.emote("cheer");
+      Voice.say(tr.voice.focusDone);
     } else {
       this.host.sound("greet");
       this.host.emote("happy");
@@ -401,9 +538,17 @@ class TodayStore {
 
     for (const i of this.items) {
       if (i.done || i.firedAt != null || i.dueAt == null || i.dueAt > now) continue;
-      i.firedAt = now;
+      const dueAt = i.dueAt;
       changed = true;
-      this.pending.push({ kind: "reminder", id: i.id, text: i.text, dueAt: i.dueAt, late: now - i.dueAt > LATE_MS });
+      // A repeating reminder is re-armed at once for its next time, so a PC that
+      // slept through three Mondays shows one card, not three.
+      if (i.repeat) {
+        i.dueAt = nextDue(i.repeat, dueAt, now);
+        i.firedAt = null;
+      } else {
+        i.firedAt = now;
+      }
+      this.pending.push({ kind: "reminder", id: i.id, text: i.text, dueAt, late: now - dueAt > LATE_MS });
     }
 
     if (changed) this.save();
@@ -441,6 +586,7 @@ class TodayStore {
     write(ITEMS_KEY, this.items);
     write(FOCUS_KEY, this.focus);
     write(BLOCKS_KEY, this.blocksByDay);
+    write(HABITS_KEY, this.habits);
     this.publish();
   }
 

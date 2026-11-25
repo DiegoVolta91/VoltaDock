@@ -10,6 +10,23 @@ import { registerIntegrationHandlers, refreshConfigured } from "./island/integra
 import { Today } from "./core/today";
 import { setLanguage } from "./i18n";
 
+/** Once at launch, only if the user asked for it; a version is announced once. */
+async function lookForUpdate() {
+  if (!State.settings.updateCheck || !IS_TAURI) return;
+  await new Promise((r) => window.setTimeout(r, 20_000));
+  if (!State.settings.updateCheck) return;
+  const info = await Bridge.checkUpdate();
+  if (!info || info.status !== "newer" || !info.url) return;
+  const KEY = "voltadock.update.seen";
+  try {
+    if (localStorage.getItem(KEY) === info.version) return;
+    localStorage.setItem(KEY, info.version);
+  } catch {
+    /* announce anyway */
+  }
+  Today.announceUpdate(info.version, info.url);
+}
+
 async function main() {
   const root = document.getElementById("root");
   if (!root) return;
@@ -68,6 +85,19 @@ async function main() {
 
   await onEvent<null>("screen-changed", () => void Bridge.reposition());
 
+  // "Borrar mis datos" in Ajustes: empty what this window keeps in memory too.
+  await onEvent<null>("data-cleared", () => {
+    try {
+      for (const k of Object.keys(localStorage)) if (k.startsWith("voltadock.") || k.startsWith("coucou.")) localStorage.removeItem(k);
+    } catch {
+      /* storage can be unavailable */
+    }
+    Today.reset();
+    State.sessions = [];
+    State.chatHistory = [];
+    State.notify();
+  });
+
   // The settings window writes preferences; apply them here without a restart.
   await onEvent<Settings>("settings-changed", (s) => {
     State.settings = { ...State.settings, ...s };
@@ -82,6 +112,7 @@ async function main() {
 
   island.launch();
   island.startToday();
+  void lookForUpdate();
 
   // In a plain browser there is no wake strip behind the cursor: make the whole
   // page wake the island so the visuals can be checked with `npm run dev`.

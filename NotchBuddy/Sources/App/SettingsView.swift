@@ -22,6 +22,12 @@ struct SettingsView: View {
     @State private var calcomKey: String    = KeychainStore.shared.get("calcom-api-key")  ?? ""
     @State private var notionKey: String    = KeychainStore.shared.get("notion-api-key")  ?? ""
 
+    // Updates and "My data"
+    @State private var updateStatus: String = ""
+    @State private var updateURL: URL? = nil
+    @State private var confirmErase: Bool = false
+    @State private var eraseNote: String = ""
+
     // Hotkey
     @State private var hotkeyFlags: UInt    = AppState.shared.hotkeyFlags
     @State private var hotkeyCode: UInt16   = AppState.shared.hotkeyCode
@@ -33,6 +39,24 @@ struct SettingsView: View {
     // n8n workflow filter
     @State private var n8nWorkflows: [String] = []
     @State private var loadingN8n: Bool = false
+
+    private func checkForUpdate() {
+        updateStatus = "Checking…"
+        updateURL = nil
+        Task { @MainActor in
+            switch await UpdateChecker.check() {
+            case .failed:
+                updateStatus = "Could not reach GitHub."
+            case .unpublished:
+                updateStatus = "No versions have been published yet."
+            case let .current(v):
+                updateStatus = "You have the latest (\(v))."
+            case let .newer(v, url):
+                updateStatus = "There is a new one: \(v)"
+                updateURL = URL(string: url)
+            }
+        }
+    }
 
     // Bindings in minutes for the absence field
     private var absenceMinutes: Binding<Double> {
@@ -235,6 +259,61 @@ struct SettingsView: View {
                         }
                     }
                     .padding(6)
+                }
+
+                // MARK: Voice
+                GroupBox("Voice") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("Speak up when Claude finishes or needs something", isOn: $state.voiceEnabled)
+                        Text("Uses the voice that comes with macOS. Nothing is recorded or sent.")
+                            .font(.system(size: 11)).foregroundColor(.secondary)
+                    }
+                    .padding(6)
+                }
+
+                // MARK: Updates
+                GroupBox("Updates") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Look for a new version at launch", isOn: $state.updateCheck)
+                        HStack(spacing: 8) {
+                            Button("Check now") { checkForUpdate() }
+                                .disabled(updateStatus == "Checking…")
+                            if !updateStatus.isEmpty {
+                                Text(updateStatus).font(.system(size: 11)).foregroundColor(.secondary)
+                            }
+                            if let url = updateURL {
+                                Button("Open download") { NSWorkspace.shared.open(url) }
+                            }
+                        }
+                        Text("Asks GitHub for the latest release; sends nothing of yours.")
+                            .font(.system(size: 11)).foregroundColor(.secondary)
+                    }
+                    .padding(6)
+                }
+
+                // MARK: My data
+                GroupBox("My data") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Deletes what VoltaDock keeps on this Mac: to-dos, reminders, habits, the chat, copies of dropped files and saved keys. Settings stay.")
+                            .font(.system(size: 11)).foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            Button("Delete my data…", role: .destructive) { confirmErase = true }
+                            if !eraseNote.isEmpty {
+                                Text(eraseNote).font(.system(size: 11)).foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(6)
+                }
+                .confirmationDialog("Delete everything VoltaDock keeps on this Mac?",
+                                    isPresented: $confirmErase, titleVisibility: .visible) {
+                    Button("Yes, delete everything", role: .destructive) {
+                        DataEraser.eraseAll()
+                        apiKey = ""; resendKey = ""; resendFrom = ""; n8nUrl = ""; n8nKey = ""
+                        vercelToken = ""; githubToken = ""; stripeKey = ""; calcomKey = ""; notionKey = ""
+                        eraseNote = "Done, everything is gone."
+                    }
+                    Button("Cancel", role: .cancel) {}
                 }
 
                 // MARK: Timings
