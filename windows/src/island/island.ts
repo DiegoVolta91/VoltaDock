@@ -54,6 +54,7 @@ export class Island {
 
   private header!: ViewHost;
   private views!: Map<IslandViewName, ViewHost>;
+  private viewActions!: ViewActions;
   private uploadCanvas!: UploadCanvas;
 
   private width = new Tracked(NOTCH_W);
@@ -212,6 +213,7 @@ export class Island {
     this.miniGrid = h("div", { id: "mini-grid" });
     this.countdown = h("div", { id: "countdown" });
 
+    this.viewActions = actions;
     this.header = buildHeader(actions);
     this.views = buildViews(actions, () => this.animateGeometry(false));
     this.viewsEl = h("div", { id: "views" });
@@ -946,6 +948,21 @@ export class Island {
   }
 
   /** Applies settings coming from Rust at boot. */
+  /**
+   * Rebuilds the header and every view in the current language. The views set
+   * most of their text once, when built, so a language change redraws them.
+   */
+  relocalize() {
+    const header = buildHeader(this.viewActions);
+    const views = buildViews(this.viewActions, () => this.animateGeometry(false));
+    this.header.el.replaceWith(header.el);
+    this.viewsEl.replaceChildren(...[...views.values()].map((v) => v.el));
+    this.header = header;
+    this.views = views;
+    State.notify();
+    if (State.view === "prompt") window.setTimeout(() => this.views.get("prompt")?.focus?.(), 0);
+  }
+
   applySettings() {
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
