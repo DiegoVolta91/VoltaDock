@@ -16,6 +16,8 @@ export interface TodayItem {
   createdAt: number;
   /** Set once the reminder has been shown, so it never fires twice. */
   firedAt: number | null;
+  /** A goal of the day ("objetivo"): shown with a done counter on the compact island. */
+  goal?: boolean;
 }
 
 export type FocusPhase = "idle" | "focus" | "rest";
@@ -53,6 +55,8 @@ const LATE_MS = 2 * 60_000;
 const ITEMS_KEY = "voltadock.today.items";
 const FOCUS_KEY = "voltadock.today.focus";
 const BLOCKS_KEY = "voltadock.today.blocks";
+
+const GOAL_PREFIX = /^(?:!+\s*|(?:objetivo|goal)\s*:\s*)/i;
 
 const IDLE: FocusSession = { phase: "idle", endsAt: null, pausedRemaining: null, duration: 0 };
 
@@ -163,13 +167,48 @@ class TodayStore {
     return this.openItems.find((i) => i.dueAt != null && i.firedAt == null) ?? null;
   }
 
+  /** Goals still to do. */
+  get openGoals(): TodayItem[] {
+    return this.openItems.filter((i) => i.goal);
+  }
+
+  /** Goals ticked today. */
+  get goalsDone(): number {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return this.items.filter((i) => i.goal && i.done && (i.doneAt ?? 0) >= start.getTime()).length;
+  }
+
+  /** What the compact island shows: focus clock, goals counter, next reminder of the day. */
+  compactParts(now = Date.now()): { kind: "focus" | "rest" | "goals" | "reminder"; text: string; paused?: boolean }[] {
+    const parts: { kind: "focus" | "rest" | "goals" | "reminder"; text: string; paused?: boolean }[] = [];
+    const f = this.focus;
+    if (f.phase !== "idle") {
+      parts.push({ kind: f.phase === "focus" ? "focus" : "rest", text: clock(remaining(f, now)), paused: isPaused(f) });
+    }
+    const open = this.openGoals.length;
+    const done = this.goalsDone;
+    if (open + done > 0) parts.push({ kind: "goals", text: `${done}/${open + done}` });
+    const next = this.nextReminder;
+    if (next?.dueAt != null && next.dueAt - now < 12 * 3_600_000) {
+      parts.push({ kind: "reminder", text: new Date(next.dueAt).toLocaleTimeString(tr.tag, { hour: "2-digit", minute: "2-digit" }) });
+    }
+    return parts;
+  }
+
   get blocksToday(): number {
     return this.blocksByDay[dayKey(Date.now())] ?? 0;
   }
 
   // ── Items ──────────────────────────────────────────────────────────────────
 
-  add(raw: string): TodayItem | null {
+  add(raw: string, asGoal = false): TodayItem | null {
+    // "!" or "objetivo:" / "goal:" in front makes it a goal of the day.
+    const m = raw.trim().match(GOAL_PREFIX);
+    if (m) {
+      asGoal = true;
+      raw = raw.trim().slice(m[0].length);
+    }
     const parsed = parseQuickAdd(raw, new Date(), { timer: tr.today.timerTitle, reminder: tr.today.reminderTitle });
     if (!parsed) return null;
     const item: TodayItem = {
@@ -180,6 +219,7 @@ class TodayStore {
       doneAt: null,
       createdAt: Date.now(),
       firedAt: null,
+      goal: asGoal,
     };
     this.items.push(item);
     this.commit();

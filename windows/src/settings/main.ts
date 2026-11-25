@@ -301,11 +301,13 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
   const list = h("div", { style: "display:flex;flex-direction:column;gap:14px" });
 
   function updateNote() {
-    const used = settings.activeIntegrations.length;
+    const used = settings.activeIntegrations.filter((x) => x !== "integration_today").length;
     note.textContent = tr.settings.integrations.note(used, MAX_ACTIVE);
   }
 
   for (const def of INTEGRATIONS) {
+    // Hoy is always on, next to VS Code: no switch.
+    if (def.id === "integration_today") continue;
     const active = settings.activeIntegrations.includes(def.id);
     const sw = h("button", { class: active ? "switch on" : "switch" });
     sw.addEventListener("click", () => {
@@ -313,7 +315,7 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
       if (on) {
         settings.activeIntegrations = settings.activeIntegrations.filter((x) => x !== def.id);
       } else {
-        if (settings.activeIntegrations.length >= MAX_ACTIVE) return;
+        if (settings.activeIntegrations.filter((x) => x !== "integration_today").length >= MAX_ACTIVE) return;
         settings.activeIntegrations = [...settings.activeIntegrations, def.id];
       }
       sw.classList.toggle("on", !on);

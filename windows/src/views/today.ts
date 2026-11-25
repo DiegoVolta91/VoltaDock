@@ -75,7 +75,19 @@ export function buildTodayCard(): TodayCard {
     autocomplete: "off",
     placeholder: tr.today.addPlaceholder,
   }) as HTMLInputElement;
-  const add = h("label", { class: "today-add" }, addIcon, flashEl, input);
+  let asGoal = false;
+  const goalBtn = h("button", {
+    class: "today-goal-btn",
+    title: tr.today.goalToggle,
+    type: "button",
+    onclick: (e: Event) => {
+      e.preventDefault();
+      asGoal = !asGoal;
+      goalBtn.classList.toggle("on", asGoal);
+      input.placeholder = asGoal ? tr.today.goalPlaceholder : tr.today.addPlaceholder;
+    },
+  }, svg(ICONS.check, 7, { stroke: 3 }), h("span", { text: tr.today.goal }));
+  const add = h("label", { class: "today-add" }, addIcon, flashEl, input, goalBtn);
 
   const face = h("div", { class: "int-card today-card" }, head, focusRow, add);
 
@@ -108,7 +120,7 @@ export function buildTodayCard(): TodayCard {
       return;
     }
     if (e.key !== "Enter") return;
-    const item = Today.add(input.value);
+    const item = Today.add(input.value, asGoal);
     if (!item) return;
     input.value = "";
     add.classList.remove("typing");
@@ -147,7 +159,10 @@ export function buildTodayCard(): TodayCard {
     const open = Today.openItems.length;
     const next = Today.nextReminder;
     const parts: string[] = [];
-    if (open > 0) parts.push(tr.today.pending(open));
+    const goalsOpen = Today.openGoals.length;
+    const goalsTotal = goalsOpen + Today.goalsDone;
+    if (goalsTotal > 0) parts.push(tr.today.goalsCount(Today.goalsDone, goalsTotal));
+    if (open > goalsOpen) parts.push(tr.today.pending(open - goalsOpen));
     if (next?.dueAt != null) parts.push(tr.today.next(dueLabel(next.dueAt).toLowerCase()));
     summary.textContent = parts.length ? parts.join(" · ") : tr.today.nothingPlanned;
 
@@ -179,9 +194,11 @@ export function buildTodayCard(): TodayCard {
   }
 
   function syncList() {
-    const all: TodayItem[] = [...Today.openItems, ...Today.items.filter((i) => i.done)];
+    // Goals first, then the rest.
+    const open = Today.openItems;
+    const all: TodayItem[] = [...open.filter((i) => i.goal), ...open.filter((i) => !i.goal), ...Today.items.filter((i) => i.done)];
     clearDone.style.display = Today.items.some((i) => i.done) ? "" : "none";
-    const key = all.map((i) => `${i.id}:${i.done}:${i.dueAt}:${i.firedAt}:${i.text}`).join("|");
+    const key = all.map((i) => `${i.id}:${i.goal}:${i.done}:${i.dueAt}:${i.firedAt}:${i.text}`).join("|");
     if (key === rowsKey) return;
     rowsKey = key;
     clear(rows);
@@ -207,6 +224,7 @@ function todayRow(item: TodayItem): HTMLElement {
   if (item.done) box.append(svg(ICONS.check, 7, { stroke: 3.4 }));
   const text = h("span", { class: item.done ? "today-text done" : "today-text", text: item.text });
   const row = h("div", { class: "today-row" }, box, text, h("div", { class: "grow" }));
+  if (item.goal && !item.done) row.insertBefore(h("span", { class: "today-goal-tag", text: tr.today.goal }), row.querySelector(".grow"));
   if (item.dueAt != null && !item.done) {
     const due = h("span", { class: "today-due", text: dueLabel(item.dueAt) });
     if (item.firedAt != null) due.style.color = FOCUS_COLOR;
@@ -286,6 +304,50 @@ export function buildFocusBar(): { el: HTMLElement; sync(compact: boolean, islan
       el.style.opacity = visible ? "1" : "0";
       track = Math.max(0, islandW - 28);
       el.style.width = `${track}px`;
+      paint();
+      ensureTicker();
+    },
+  };
+}
+
+// ── Compact strip ─────────────────────────────────────────────────────────────
+
+const STRIP_COLORS = { focus: FOCUS_COLOR, rest: REST_COLOR, goals: TODAY_COLOR, reminder: "#A78BFA" } as const;
+
+/**
+ * Text in the middle of the compact island (the empty "notch" of a PC): focus
+ * clock, goals done and the next reminder, so they are in sight without opening
+ * anything. Clicks go through it to the island.
+ */
+export function buildTodayStrip(): { el: HTMLElement; sync(compact: boolean, islandW: number, islandH: number): void } {
+  const el = h("div", { id: "today-strip" });
+  let visible = false;
+  let key = "";
+
+  function paint() {
+    if (!visible) return;
+    const parts = Today.compactParts();
+    const k = parts.map((p) => `${p.kind}:${p.text}:${p.paused}`).join("|");
+    if (k === key) return;
+    key = k;
+    clear(el);
+    for (const p of parts) {
+      const span = h("span", { class: `strip-part ${p.kind}`, style: `color:${STRIP_COLORS[p.kind]}` }, dot(STRIP_COLORS[p.kind], 4), h("b", { text: p.text }));
+      if (p.paused) span.style.opacity = "0.55";
+      el.append(span);
+    }
+  }
+  tickers.add(paint);
+
+  return {
+    el,
+    sync(compact, islandW, islandH) {
+      visible = compact && Today.compactParts().length > 0;
+      el.style.opacity = visible ? "1" : "0";
+      el.style.left = "56px";
+      el.style.width = `${Math.max(0, islandW - 56 - 66)}px`;
+      el.style.top = `${islandH / 2 - 8}px`;
+      key = "";
       paint();
       ensureTicker();
     },

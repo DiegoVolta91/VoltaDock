@@ -15,6 +15,7 @@ struct TodayCardView: View {
     @ObservedObject private var store = TodayStore.shared
     @State private var draft = ""
     @State private var flash: String? = nil
+    @State private var asGoal = false
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
@@ -41,8 +42,11 @@ struct TodayCardView: View {
 
     private var summary: String {
         let open = store.openItems.count
+        let goalsOpen = store.openGoals.count
+        let goalsTotal = goalsOpen + store.goalsDone
         var parts: [String] = []
-        if open > 0 { parts.append("\(open) to do") }
+        if goalsTotal > 0 { parts.append("\(store.goalsDone)/\(goalsTotal) goals") }
+        if open > goalsOpen { parts.append("\(open - goalsOpen) to do") }
         if let next = store.nextReminder, let due = next.dueAt {
             parts.append("next \(TodayFormat.due(due).lowercased())")
         }
@@ -80,13 +84,23 @@ struct TodayCardView: View {
                         .lineLimit(1)
                         .transition(.opacity)
                 }
-                TextField(flash == nil ? "To-do, or “in 10 min stretch”" : "", text: $draft)
+                TextField(flash == nil ? (asGoal ? "Goal of the day" : "To-do, or “in 10 min stretch”") : "", text: $draft)
                     .textFieldStyle(.plain)
                     .font(.system(size: 11))
                     .foregroundColor(Color(hex: "#C5C8CD"))
                     .focused($fieldFocused)
                     .onSubmit(submit)
             }
+            Button { asGoal.toggle() } label: {
+                Text("Goal")
+                    .font(.system(size: 9, weight: .semibold))
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .foregroundColor(Color(hex: asGoal ? todayColor : "#6B7079"))
+                    .background(asGoal ? Color(hex: todayColor).opacity(0.2) : Color.white.opacity(0.08))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("Make it a goal of the day (or start with “!”)")
         }
         .padding(.horizontal, 8)
         .frame(height: 22)
@@ -101,7 +115,7 @@ struct TodayCardView: View {
     }
 
     private func submit() {
-        guard let item = store.add(draft) else { return }
+        guard let item = store.add(draft, asGoal: asGoal) else { return }
         draft = ""
         let when = item.dueAt.map { " · \(TodayFormat.due($0))" } ?? ""
         withAnimation(.easeOut(duration: 0.2)) { flash = "Added\(when)" }
@@ -218,7 +232,7 @@ struct TodayListView: View {
     @ObservedObject private var store = TodayStore.shared
 
     private var rows: [TodayItem] {
-        store.openItems + store.items.filter(\.done)
+        store.openGoals + store.openItems.filter { !$0.goal } + store.items.filter(\.done)
     }
 
     var body: some View {
@@ -283,6 +297,14 @@ private struct TodayRow: View {
             }
             .buttonStyle(.plain)
 
+            if item.goal && !item.done {
+                Text("Goal")
+                    .font(.system(size: 8, weight: .semibold))
+                    .padding(.horizontal, 4).padding(.vertical, 1)
+                    .foregroundColor(Color(hex: todayColor))
+                    .background(Color(hex: todayColor).opacity(0.18))
+                    .clipShape(Capsule())
+            }
             Text(item.text)
                 .font(.system(size: 11))
                 .foregroundColor(Color(hex: item.done ? "#5F646D" : "#C5C8CD"))

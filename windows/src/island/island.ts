@@ -22,7 +22,7 @@ import { IslandStateMachine } from "./fsm";
 import { releaseApproval } from "./hooks";
 import { continueSession } from "../core/panels";
 import { Today } from "../core/today";
-import { buildFocusBar } from "../views/today";
+import { buildFocusBar, buildTodayStrip } from "../views/today";
 
 const BOT_OVERHANG = 40;
 /** Same margin as the Rust hit test (src-tauri/src/island.rs). */
@@ -65,6 +65,7 @@ export class Island {
   private miniGrid!: HTMLElement;
   private countdown!: HTMLElement;
   private focusBar = buildFocusBar();
+  private todayStrip = buildTodayStrip();
   private wakeStrip!: HTMLElement;
 
   private header!: ViewHost;
@@ -273,6 +274,7 @@ export class Island {
       this.miniGrid,
       this.countdown,
       this.focusBar.el,
+      this.todayStrip.el,
     );
 
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1011,7 +1013,9 @@ export class Island {
     }
 
     // Focus block countdown, visible while the island is folded away.
-    this.focusBar.sync(State.mode === "compact", islandSize("compact", State.view).w);
+    const compactSize = islandSize("compact", State.view);
+    this.focusBar.sync(State.mode === "compact", compactSize.w);
+    this.todayStrip.sync(State.mode === "compact", compactSize.w, compactSize.h);
 
     syncMiniBotStates(State.tasks);
     this.engine.setState(State.effectiveState);
