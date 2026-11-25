@@ -126,6 +126,8 @@ export interface Settings {
   model: string;
   /** Folder whose git repositories the Proyectos panel lists; empty = automatic. */
   projectsRoot: string;
+  /** A paired iPad may connect over the local network. Off by default. */
+  remoteEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -141,6 +143,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hooksInstalled: false,
   model: "claude-opus-5",
   projectsRoot: "",
+  remoteEnabled: false,
 };
 
 type Listener = () => void;

@@ -1,0 +1,101 @@
+name: iPad
+
+# Builds and tests the iPad companion in the iOS Simulator, then takes
+# screenshots (pairing screen and a demo dashboard) as a downloadable artifact.
+# No signing: putting it on a real iPad needs an Apple Developer account.
+
+on:
+  push:
+    branches: [main]
+    paths: ["ipad/**", "docs/REMOTE.md", ".github/workflows/ipad.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["ipad/**", "docs/REMOTE.md", ".github/workflows/ipad.yml"]
+  workflow_dispatch:
+
+jobs:
+  ipad:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: cd ipad && xcodegen
+
+      - name: Pick an iPad simulator
+        id: sim
+        run: |
+          xcodebuild -version
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          ipads = [d for runtime, ds in devices.items() if "iOS" in runtime for d in ds if d["name"].startswith("iPad")]
+          if not ipads:
+              sys.exit("no iPad simulator")
+          pick = next((d for d in ipads if "Air" in d["name"]), ipads[-1])
+          print(pick["udid"])
+          ')
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices available | grep "$UDID"
+
+      - name: Mock desktop (for the end-to-end test)
+        run: |
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip install --quiet cryptography
+          /tmp/venv/bin/python ipad/ci/mock_desktop.py > /tmp/mock.log 2>&1 &
+          echo $! > /tmp/mock.pid
+          sleep 1
+          cat /tmp/mock.log
+
+      - name: Build and test
+        env:
+          TEST_RUNNER_VOLTADOCK_E2E: "1"
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project ipad/VoltaDockPad.xcodeproj \
+            -scheme VoltaDockPad \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee /tmp/xcodebuild.log | grep -E "error:|warning: .*(Sendable|concurrency)|Test Case|Executed|\*\* (TEST|BUILD)" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" /tmp/xcodebuild.log
+
+      - name: The mock saw the whole exchange
+        run: |
+          cat /tmp/mock.log
+          grep -q "mock desktop: ok" /tmp/mock.log
+
+      - name: Screenshots
+        run: |
+          UDID=${{ steps.sim.outputs.udid }}
+          APP=$(find build/Build/Products -name "VoltaDock.app" -path "*iphonesimulator*" | head -1)
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p screenshots
+          xcrun simctl launch "$UDID" io.github.diegovolta91.VoltaDock.iPad
+          sleep 6
+          xcrun simctl io "$UDID" screenshot screenshots/pairing.png
+          xcrun simctl terminate "$UDID" io.github.diegovolta91.VoltaDock.iPad
+          xcrun simctl launch "$UDID" io.github.diegovolta91.VoltaDock.iPad -demo
+          sleep 6
+          xcrun simctl io "$UDID" screenshot screenshots/dashboard.png
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ipad-screenshots
+          path: screenshots/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ipad-build-log
+          path: /tmp/xcodebuild.log

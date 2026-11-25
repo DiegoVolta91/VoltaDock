@@ -9,6 +9,7 @@ mod island;
 mod log;
 mod pipe;
 mod projects;
+mod remote;
 mod secrets;
 mod sessions;
 mod settings;
@@ -65,13 +66,17 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
 
 #[tauri::command]
 fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
-    let (screen_changed, autostart_changed) = {
+    let (screen_changed, autostart_changed, remote_changed) = {
         let mut current = shared.settings.lock().unwrap();
         let screen_changed = current.screen != settings.screen;
         let autostart_changed = current.autostart != settings.autostart;
+        let remote_changed = current.remote_enabled != settings.remote_enabled;
         *current = settings.clone();
-        (screen_changed, autostart_changed)
+        (screen_changed, autostart_changed, remote_changed)
     };
+    if remote_changed {
+        remote::apply(&app, settings.remote_enabled);
+    }
     if let Err(err) = settings::save(&settings) {
         eprintln!("[coucou] could not save settings: {err}");
     }
@@ -399,6 +404,24 @@ fn approval_decline(app: AppHandle, request_id: String) {
     pipe::decline(&app, &request_id);
 }
 
+// ── iPad ──────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn remote_status() -> remote::RemoteStatus {
+    remote::status()
+}
+
+/// Shows the pairing secret. Only ever called from a click in the settings window.
+#[tauri::command]
+fn remote_pairing() -> Result<remote::Pairing, String> {
+    remote::pairing()
+}
+
+#[tauri::command]
+fn remote_forget(app: AppHandle) -> Result<(), String> {
+    remote::forget(&app)
+}
+
 // ── Chat, files and secrets ───────────────────────────────────────────────────
 
 /// One chat turn. The API key and any file bytes stay on the Rust side.
@@ -574,6 +597,9 @@ pub fn run() {
             open_n8n,
             open_settings_window,
             set_paused,
+            remote_status,
+            remote_pairing,
+            remote_forget,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -593,6 +619,7 @@ pub fn run() {
             log::line(format!("--- Coucou {} started ---", env!("CARGO_PKG_VERSION")));
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
+            remote::apply(&handle, loaded.remote_enabled);
             hotkey::start(handle.clone());
             integrations::start(handle.clone());
             Ok(())

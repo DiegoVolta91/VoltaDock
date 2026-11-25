@@ -24,6 +24,9 @@ pub struct Settings {
     /// the first of the usual places that exists.
     #[serde(default)]
     pub projects_root: String,
+    /// Lets a paired iPad connect over the local network (remote.rs). Off by default.
+    #[serde(default)]
+    pub remote_enabled: bool,
 }
 
 fn default_model() -> String {
@@ -48,6 +51,7 @@ impl Default for Settings {
             hooks_installed: false,
             model: default_model(),
             projects_root: String::new(),
+            remote_enabled: false,
         }
     }
 }

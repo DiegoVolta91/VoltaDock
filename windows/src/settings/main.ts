@@ -3,7 +3,7 @@
 // integrations land here too in a later stage.
 
 import "./settings.css";
-import { Bridge, onEvent, type HookStatus } from "../core/bridge";
+import { Bridge, onEvent, type HookStatus, type RemoteStatus } from "../core/bridge";
 import { DEFAULT_SETTINGS, type Settings } from "../core/state";
 import { h, clear } from "../views/dom";
 
@@ -365,6 +365,112 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
   return h("section", {}, h("h2", {}, h("span", { text: "Integraciones" })), note, list);
 }
 
+// ── iPad section ──────────────────────────────────────────────────────────────
+
+function ipadSection(): HTMLElement {
+  const dot = statusDot(false);
+  const body = h("div", { style: "display:flex;flex-direction:column;gap:12px" });
+  const state = h("span", { class: "hint" });
+  const pairing = h("div", { style: "display:flex;flex-direction:column;gap:10px" });
+  const feedback = h("div", {});
+  let shown = false;
+
+  const describe = (s: RemoteStatus | null) => {
+    const on = settings.remoteEnabled;
+    dot.style.background = s?.viewers ? "#22c55e" : on && s?.running ? "#f5a623" : "#f4505e";
+    if (!on) state.textContent = "Apagado. Nadie puede conectarse.";
+    else if (s?.error) state.textContent = `No se pudo abrir el puerto ${s.port}: ${s.error}`;
+    else if (s?.viewers) state.textContent = `Conectado: ${s.devices.join(", ")}.`;
+    else if (s?.running) state.textContent = `Esperando al iPad en el puerto ${s.port}.`;
+    else state.textContent = "Arrancando…";
+  };
+
+  const refresh = async () => describe(await Bridge.remoteStatus());
+
+  const hidePairing = () => {
+    shown = false;
+    clear(pairing);
+  };
+
+  const showPairing = async () => {
+    clear(feedback);
+    try {
+      const p = await Bridge.remotePairing();
+      shown = true;
+      clear(pairing);
+      const qr = h("div", { class: "qr" });
+      // Generated locally by Rust from our own pairing code, never from outside input.
+      qr.innerHTML = p.qrSvg;
+      const code = h("input", { type: "text", value: p.code, readonly: "true", style: "flex:1 1 auto;min-width:0" }) as HTMLInputElement;
+      const copy = h("button", { text: "Copiar" });
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(p.code);
+          copy.textContent = "Copiado";
+        } catch {
+          code.select();
+        }
+      });
+      pairing.append(
+        h("div", { class: "hint", text: "Abre VoltaDock en el iPad y escanea este código, o pega el texto. Quien tenga este código puede aprobar permisos: no lo compartas." }),
+        qr,
+        h("div", { class: "row" }, code, copy),
+        h("div", { class: "hint", text: `Direcciones: ${p.hosts.join(", ")}. El iPad tiene que estar en la misma red Wi‑Fi. La primera vez Windows puede preguntar si permites el acceso a la red: elige "Redes privadas".` }),
+        h("div", { class: "row" }, h("button", { text: "Ocultar código", onclick: hidePairing })),
+      );
+    } catch (err) {
+      feedback.append(h("div", { class: "notice err", text: `No se pudo crear el código: ${String(err).replace(/^Error:\s*/, "")}` }));
+    }
+  };
+
+  const pairBtn = h("button", { class: "primary", text: "Emparejar iPad…", onclick: () => void showPairing() });
+  const forgetBtn = h("button", {
+    class: "danger",
+    text: "Olvidar iPads",
+    onclick: async () => {
+      clear(feedback);
+      try {
+        await Bridge.remoteForget();
+        if (shown) await showPairing();
+        feedback.append(h("div", { class: "notice ok", text: "Clave nueva. Los iPads emparejados tendrán que escanear otra vez." }));
+      } catch (err) {
+        feedback.append(h("div", { class: "notice err", text: `No se pudo cambiar la clave: ${String(err)}` }));
+      }
+      await refresh();
+    },
+  });
+  const actions = h("div", { class: "row" }, pairBtn, forgetBtn);
+
+  const sync = () => {
+    actions.style.display = settings.remoteEnabled ? "" : "none";
+    if (!settings.remoteEnabled) hidePairing();
+  };
+
+  body.append(
+    h("div", {
+      class: "hint",
+      text: "Mira tus sesiones de Claude Code y aprueba permisos desde el iPad. Solo funciona en tu red local, cifrado y sin pasar por ningún servidor.",
+    }),
+    h("div", { class: "row" },
+      h("label", { text: "Permitir iPad" }),
+      toggle(settings.remoteEnabled, (v) => {
+        settings.remoteEnabled = v;
+        sync();
+        void save().then(() => window.setTimeout(() => void refresh(), 300));
+      }),
+      state,
+    ),
+    actions,
+    pairing,
+    feedback,
+  );
+  sync();
+  void refresh();
+  void onEvent<RemoteStatus>("remote-changed", (s) => describe(s));
+
+  return h("section", {}, h("h2", {}, dot, h("span", { text: "iPad" })), body);
+}
+
 // ── General section ───────────────────────────────────────────────────────────
 
 function generalSection(): HTMLElement {
@@ -467,6 +573,7 @@ async function main() {
     claudeSection(status),
     apiSection(hasKey),
     integrationsSection(present),
+    ipadSection(),
     generalSection(),
     h("div", {
       class: "hint",

@@ -38,12 +38,17 @@ const DECISION_TIMEOUT: Duration = Duration::from_secs(108);
 /// simply not listening would leave Claude Code staring at a prompt nobody can
 /// see for nearly two minutes.
 const ACK_TIMEOUT: Duration = Duration::from_millis(800);
+/// The same window while a paired iPad is connected: it has a network hop to
+/// make before it can say its card is up. Only ever used when one is there.
+const REMOTE_ACK_TIMEOUT: Duration = Duration::from_secs(2);
 const MAX_PAYLOAD: usize = 1 << 20;
 
 /// What the island can say about a permission request.
 pub enum Reply {
     /// The card is on screen and a human can act on it.
     Ack,
+    /// The same, on a paired iPad (remote.rs).
+    RemoteAck,
     /// A human clicked: `allow` or `deny`.
     Decision(String),
     /// Nobody can act on it — paused, or another request already holds the card.
@@ -127,6 +132,7 @@ async fn handle(app: AppHandle, mut pipe: NamedPipeServer) {
 
     if event != "PermissionRequest" {
         log::line(format!("hook {event}"));
+        crate::remote::publish_hook(&payload);
         let _ = app.emit_to(WINDOW_LABEL, "hook", payload);
         let _ = pipe.disconnect();
         return;
@@ -140,10 +146,18 @@ async fn handle(app: AppHandle, mut pipe: NamedPipeServer) {
     }
     payload["request_id"] = json!(id);
     log::line(format!("hook PermissionRequest id={id}"));
+    crate::remote::publish_hook(&payload);
     let _ = app.emit_to(WINDOW_LABEL, "hook", payload);
 
     let decision = wait_for_decision(&id, &mut rx).await;
     app.state::<Pending>().0.lock().unwrap().remove(&id);
+    // Whoever answered, the other screen drops its card.
+    crate::remote::resolved(&id, decision.as_deref());
+    let _ = app.emit_to(
+        WINDOW_LABEL,
+        "approval-resolved",
+        json!({ "requestId": id, "decision": decision }),
+    );
 
     // No decision: say nothing at all. coucou-hook then writes nothing to stdout
     // and Claude Code asks in the terminal, exactly as if Coucou were closed.
@@ -155,37 +169,55 @@ async fn handle(app: AppHandle, mut pipe: NamedPipeServer) {
 }
 
 /// Two waits: a short one for "the card is up", then the long one for a human.
+/// Both are measured from the moment the request arrived, so the total never
+/// grows past what coucou-hook is willing to wait.
 async fn wait_for_decision(id: &str, rx: &mut mpsc::Receiver<Reply>) -> Option<String> {
-    match tokio::time::timeout(ACK_TIMEOUT, rx.recv()).await {
-        Ok(Some(Reply::Ack)) => {}
-        // A click that beats the ack is still a click.
-        Ok(Some(Reply::Decision(d))) => {
-            log::line(format!("hook id={id} answered {d}"));
-            return Some(d);
-        }
-        Ok(Some(Reply::Decline)) => {
-            log::line(format!("hook id={id} not shown — terminal takes over"));
-            return None;
-        }
-        Ok(None) => return None,
-        Err(_) => {
-            log::line(format!("hook id={id} island never acknowledged — terminal takes over"));
-            return None;
+    let arrived = tokio::time::Instant::now();
+    let ack_window = if crate::remote::has_viewers() { REMOTE_ACK_TIMEOUT } else { ACK_TIMEOUT };
+
+    loop {
+        match tokio::time::timeout_at(arrived + ack_window, rx.recv()).await {
+            Ok(Some(Reply::Ack)) | Ok(Some(Reply::RemoteAck)) => break,
+            // A click that beats the ack is still a click.
+            Ok(Some(Reply::Decision(d))) => {
+                log::line(format!("hook id={id} answered {d}"));
+                return Some(d);
+            }
+            Ok(Some(Reply::Decline)) => {
+                // The island will not show it (paused), but a connected iPad may.
+                if crate::remote::has_viewers() {
+                    continue;
+                }
+                log::line(format!("hook id={id} not shown — terminal takes over"));
+                return None;
+            }
+            Ok(None) => return None,
+            Err(_) => {
+                log::line(format!("hook id={id} nobody acknowledged — terminal takes over"));
+                return None;
+            }
         }
     }
 
-    match tokio::time::timeout(DECISION_TIMEOUT, rx.recv()).await {
-        Ok(Some(Reply::Decision(d))) => {
-            log::line(format!("hook id={id} answered {d}"));
-            Some(d)
-        }
-        Ok(Some(Reply::Decline)) => {
-            log::line(format!("hook id={id} released without a decision"));
-            None
-        }
-        _ => {
-            log::line(format!("hook id={id} timed out — terminal takes over"));
-            None
+    loop {
+        match tokio::time::timeout_at(arrived + DECISION_TIMEOUT, rx.recv()).await {
+            Ok(Some(Reply::Decision(d))) => {
+                log::line(format!("hook id={id} answered {d}"));
+                return Some(d);
+            }
+            // The second screen saying it is showing the card too.
+            Ok(Some(Reply::Ack)) | Ok(Some(Reply::RemoteAck)) => continue,
+            Ok(Some(Reply::Decline)) => {
+                if crate::remote::has_viewers() {
+                    continue;
+                }
+                log::line(format!("hook id={id} released without a decision"));
+                return None;
+            }
+            _ => {
+                log::line(format!("hook id={id} timed out — terminal takes over"));
+                return None;
+            }
         }
     }
 }
@@ -212,7 +244,13 @@ pub fn acknowledge(app: &AppHandle, request_id: &str) {
 /// Nobody can act on this one — paused, or another card already holds the view.
 pub fn decline(app: &AppHandle, request_id: &str) {
     log::line(format!("decline id={request_id}"));
-    send(app, request_id, Reply::Decline, false);
+    // Kept in the map: a connected iPad may still answer it. handle() removes it.
+    send(app, request_id, Reply::Decline, true);
+}
+
+/// A paired iPad has the card on screen.
+pub fn remote_acknowledge(app: &AppHandle, request_id: &str) {
+    send(app, request_id, Reply::RemoteAck, true);
 }
 
 /// Called by the island's Allow / Deny buttons. Only ever a bare word: turning
