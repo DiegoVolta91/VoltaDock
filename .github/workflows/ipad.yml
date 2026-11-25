@@ -2,7 +2,8 @@ name: iPad
 
 # Builds and tests the iPad companion in the iOS Simulator, then takes
 # screenshots (pairing screen and a demo dashboard) as a downloadable artifact.
-# No signing: putting it on a real iPad needs an Apple Developer account.
+# Also builds an unsigned VoltaDock.ipa (artifact `VoltaDock-ipa`) that
+# Sideloadly or AltStore re-sign with a free Apple ID: see ipad/INSTALL.md.
 
 on:
   push:
@@ -15,7 +16,7 @@ on:
 
 jobs:
   ipad:
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +87,28 @@ jobs:
           xcrun simctl launch "$UDID" io.github.diegovolta91.VoltaDock.iPad -demo
           sleep 6
           xcrun simctl io "$UDID" screenshot screenshots/dashboard.png
+
+      - name: Unsigned .ipa for Sideloadly / AltStore
+        run: |
+          xcodebuild build \
+            -project ipad/VoltaDockPad.xcodeproj \
+            -scheme VoltaDockPad \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build-device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | grep -E "error:|\*\* BUILD" || true
+          APP=build-device/Build/Products/Release-iphoneos/VoltaDock.app
+          test -d "$APP"
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          zip -qry VoltaDock.ipa Payload
+          ls -lh VoltaDock.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoltaDock-ipa
+          path: VoltaDock.ipa
 
       - uses: actions/upload-artifact@v4
         if: always()
