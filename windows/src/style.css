@@ -1857,3 +1857,57 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 2px;
   transition: width 1s linear;
 }
+
+/* Today strip: focus clock, goals and next reminder in the compact island. */
+#today-strip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 16px;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.25s ease-in-out;
+}
+
+#today-strip .strip-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#today-strip b {
+  font-weight: 600;
+}
+
+.today-goal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dim-3, rgba(255, 255, 255, 0.45));
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.today-goal-btn.on {
+  background: rgba(45, 212, 191, 0.2);
+  color: #2dd4bf;
+}
+
+.today-goal-tag {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(45, 212, 191, 0.18);
+  color: #2dd4bf;
+  font-size: 8px;
+  font-weight: 600;
+}

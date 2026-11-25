@@ -72,7 +72,7 @@ def main():
         "tool_name": "Bash",
         "tool_input": {"command": "npm test"},
     }
-    send({"type": "welcome", "host": "MOCK", "version": "0", "pending": [request], "sessions": []})
+    send({"type": "welcome", "host": "MOCK", "version": "0", "pending": [request], "sessions": [], "today": None})
     seen = []
     while True:
         msg = recv()

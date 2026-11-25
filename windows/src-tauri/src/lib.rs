@@ -446,6 +446,13 @@ fn remote_pairing() -> Result<remote::Pairing, String> {
     remote::pairing()
 }
 
+/// The island's webview owns the Hoy data; it hands every change here so a
+/// paired iPad can show it.
+#[tauri::command]
+fn today_publish(state: serde_json::Value) {
+    remote::set_today(state);
+}
+
 #[tauri::command]
 fn remote_forget(app: AppHandle) -> Result<(), String> {
     remote::forget(&app)
@@ -637,6 +644,7 @@ pub fn run() {
             remote_status,
             remote_pairing,
             remote_forget,
+            today_publish,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

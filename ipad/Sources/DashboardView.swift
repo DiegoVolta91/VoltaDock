@@ -11,13 +11,14 @@ struct DashboardView: View {
                     header
                     if geo.size.width > 900 {
                         HStack(alignment: .top, spacing: 20) {
-                            VStack(spacing: 20) { approvalsCard; sessionsCard }
+                            VStack(spacing: 20) { approvalsCard; TodayCard(); sessionsCard }
                                 .frame(maxWidth: .infinity)
                             activityCard
                                 .frame(width: min(420, geo.size.width * 0.38))
                         }
                     } else {
                         approvalsCard
+                        TodayCard()
                         sessionsCard
                         activityCard
                     }

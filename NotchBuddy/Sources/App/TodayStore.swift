@@ -18,6 +18,8 @@ struct TodayItem: Codable, Identifiable, Equatable {
     var createdAt: Date = .now
     /// Set once the reminder has been shown, so it never fires twice.
     var firedAt: Date? = nil
+    /// A goal of the day: counted as "done/total" in the card.
+    var goal: Bool = false
 }
 
 enum FocusPhase: String, Codable {
@@ -232,14 +234,30 @@ final class TodayStore: ObservableObject {
         openItems.first { $0.dueAt != nil && $0.firedAt == nil }
     }
 
+    /// Goals still to do.
+    var openGoals: [TodayItem] { openItems.filter(\.goal) }
+
+    /// Goals ticked today.
+    var goalsDone: Int {
+        let start = Calendar.current.startOfDay(for: .now)
+        return items.filter { $0.goal && $0.done && ($0.doneAt ?? .distantPast) >= start }.count
+    }
+
     var blocksToday: Int { blocksByDay[Self.dayKey(.now)] ?? 0 }
 
     // MARK: Items
 
     @discardableResult
-    func add(_ raw: String) -> TodayItem? {
-        guard let parsed = QuickAdd.parse(raw) else { return nil }
-        let item = TodayItem(text: parsed.title, dueAt: parsed.dueAt)
+    func add(_ raw: String, asGoal: Bool = false) -> TodayItem? {
+        // "!" or "goal:" in front makes it a goal of the day.
+        var text = raw.trimmingCharacters(in: .whitespaces)
+        var isGoal = asGoal
+        if let r = text.range(of: #"^(?:!+\s*|(?:objetivo|goal)\s*:\s*)"#, options: [.regularExpression, .caseInsensitive]) {
+            isGoal = true
+            text.removeSubrange(r)
+        }
+        guard let parsed = QuickAdd.parse(text) else { return nil }
+        let item = TodayItem(text: parsed.title, dueAt: parsed.dueAt, goal: isGoal)
         items.append(item)
         commit()
         return item

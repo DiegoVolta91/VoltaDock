@@ -117,6 +117,8 @@ export const Bridge = {
   remoteStatus: () => call<RemoteStatus>("remote_status"),
   /** The pairing secret, as text and QR code. Only on an explicit click. */
   remotePairing: () => callOrThrow<RemotePairing>("remote_pairing"),
+  /** Hands the Hoy snapshot to the iPad server (focus, goals, reminders). */
+  todayPublish: (state: unknown) => call<void>("today_publish", { state }),
   /** New key: every paired iPad is disconnected. */
   remoteForget: () => callOrThrow<void>("remote_forget"),
 

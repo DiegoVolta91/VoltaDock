@@ -96,6 +96,8 @@ struct Hub {
     /// Permission requests still waiting, so an iPad that connects late sees them.
     pending: Mutex<Vec<(String, Value)>>,
     viewers: AtomicUsize,
+    /// Last "Hoy" snapshot sent by the island, so an iPad that connects late has it.
+    today: Mutex<Option<Value>>,
     /// Bumped to close every connection (stop, or a new pairing key).
     generation: watch::Sender<u64>,
     /// Set while the listener runs.
@@ -109,6 +111,7 @@ static HUB: LazyLock<Hub> = LazyLock::new(|| Hub {
     tx: broadcast::channel(256).0,
     pending: Mutex::new(Vec::new()),
     viewers: AtomicUsize::new(0),
+    today: Mutex::new(None),
     generation: watch::channel(0).0,
     running: Mutex::new(None),
     error: Mutex::new(None),
@@ -146,6 +149,14 @@ pub fn publish_hook(payload: &Value) {
         }
     }
     broadcast(json!({ "type": "hook", "event": event }));
+}
+
+/// The island's Hoy state (focus, goals, reminders), as the webview sees it.
+pub fn set_today(state: Value) {
+    *HUB.today.lock().unwrap() = Some(state.clone());
+    if is_running() {
+        broadcast(json!({ "type": "today", "state": state }));
+    }
 }
 
 /// A request was answered (by anyone) or handed back to the terminal.
@@ -485,6 +496,7 @@ async fn serve(app: AppHandle, stream: TcpStream) -> Result<(), String> {
         "version": env!("CARGO_PKG_VERSION"),
         "pending": pending,
         "sessions": recent_sessions().await,
+        "today": HUB.today.lock().unwrap().clone(),
     });
     write_frame(&mut wr, &mut s2c, &welcome.to_string()).await?;
 
@@ -544,6 +556,11 @@ async fn handle_client(app: &AppHandle, device: &str, msg: &Value) -> Option<Val
             };
             log::line(format!("remote: {device} answered id={request_id} {decision}"));
             crate::pipe::answer(app, request_id, decision);
+        }
+        // Start/pause focus, tick a goal, add a to-do…: the island's webview owns
+        // the Hoy data, so it applies the command and publishes the new state.
+        "today_cmd" => {
+            let _ = app.emit("remote-today-cmd", msg.clone());
         }
         "refresh" => return Some(json!({ "type": "sessions", "sessions": recent_sessions().await })),
         _ => {}

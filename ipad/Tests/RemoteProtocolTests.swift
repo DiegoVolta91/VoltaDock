@@ -93,4 +93,44 @@ final class RemoteEndToEndTests: XCTestCase {
         XCTAssertEqual(resolved.request_id, id)
         XCTAssertEqual(resolved.decision, "allow")
     }
+
+    // MARK: Hoy
+
+    func testDecodesTodayInWelcomeAndUpdates() throws {
+        let json = #"""
+        {"type":"welcome","host":"PC","today":{"now":1000000,"blocksToday":2,
+         "focus":{"phase":"focus","endsAt":1900000,"pausedRemaining":null,"duration":1500000},
+         "items":[{"id":"a","text":"Objetivo","dueAt":null,"done":false,"goal":true,"fired":false}]}}
+        """#
+        let msg = try JSONDecoder().decode(Incoming.self, from: Data(json.utf8))
+        XCTAssertEqual(msg.today?.focus.phase, "focus")
+        XCTAssertEqual(msg.today?.items.first?.goal, true)
+        let none = try JSONDecoder().decode(Incoming.self, from: Data(#"{"type":"welcome","today":null}"#.utf8))
+        XCTAssertNil(none.today)
+    }
+
+    func testTodayCommandEncoding() throws {
+        let data = try JSONEncoder().encode(Outgoing.today("add", text: "x", goal: true))
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertEqual(obj?["type"] as? String, "today_cmd")
+        XCTAssertEqual(obj?["action"] as? String, "add")
+        XCTAssertEqual(obj?["goal"] as? Bool, true)
+    }
+
+    func testNotificationsOnlyForFutureOpenReminders() {
+        let now = Date()
+        let ms = now.timeIntervalSince1970 * 1000
+        let t = TodaySnapshot(
+            now: ms,
+            focus: FocusDTO(phase: "focus", endsAt: ms + 600_000, pausedRemaining: nil, duration: 1_500_000),
+            blocksToday: 0,
+            items: [
+                TodayItemDTO(id: "future", text: "a", dueAt: ms + 3_600_000, done: false, goal: false, fired: false),
+                TodayItemDTO(id: "past", text: "b", dueAt: ms - 60_000, done: false, goal: false, fired: false),
+                TodayItemDTO(id: "done", text: "c", dueAt: ms + 3_600_000, done: true, goal: false, fired: false),
+            ]
+        )
+        let ids = Set(TodayNotifications.requests(for: t, offset: 0, now: now).map(\.identifier))
+        XCTAssertEqual(ids, ["voltadock.today.item.future", "voltadock.today.focus"])
+    }
 }

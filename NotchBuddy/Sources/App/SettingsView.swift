@@ -273,14 +273,14 @@ struct SettingsView: View {
 
                         Divider()
 
-                        Text("\(state.activeIntegrations.count)/4 slots used")
+                        Text("\(state.activeIntegrations.subtracting(["integration_today"]).count)/4 slots used")
                             .font(.system(size: 11))
-                            .foregroundColor(state.activeIntegrations.count >= 4 ? .orange : .secondary)
+                            .foregroundColor(state.activeIntegrations.subtracting(["integration_today"]).count >= 4 ? .orange : .secondary)
 
                         ForEach(AgentTask.toggleableIntegrationIds, id: \.self) { id in
                             let task = AgentTask.integrationAgents.first { $0.id == id }!
                             let isOn = state.activeIntegrations.contains(id)
-                            let atMax = state.activeIntegrations.count >= 4 && !isOn
+                            let atMax = state.activeIntegrations.subtracting(["integration_today"]).count >= 4 && !isOn
                             HStack(spacing: 8) {
                                 Circle()
                                     .fill(Color(hex: task.color))

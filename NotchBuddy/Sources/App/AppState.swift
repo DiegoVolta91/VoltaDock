@@ -21,7 +21,7 @@ extension AgentTask {
     /// IDs that can be toggled (VS Code is always on and excluded from this list)
     static let toggleableIntegrationIds: [String] = [
         "integration_resend", "integration_n8n", "integration_vercel", "integration_github",
-        "integration_notion", "integration_calcom", "integration_stripe", "integration_today",
+        "integration_notion", "integration_calcom", "integration_stripe",
     ]
 
 }
@@ -268,7 +268,7 @@ final class AppState: ObservableObject {
     /// Load integration pills respecting activeIntegrations. VS Code always loads. Safe to call multiple times.
     func loadIntegrationTasks() {
         for task in AgentTask.integrationAgents {
-            let shouldLoad = task.id == "integration_claude" || activeIntegrations.contains(task.id)
+            let shouldLoad = task.id == "integration_claude" || task.id == "integration_today" || activeIntegrations.contains(task.id)
             let loaded = tasks.contains(where: { $0.id == task.id })
             if shouldLoad && !loaded { tasks.append(task) }
             if !shouldLoad && loaded { tasks.removeAll { $0.id == task.id } }
@@ -279,13 +279,13 @@ final class AppState: ObservableObject {
 
     /// Toggle an integration pill on/off. VS Code cannot be toggled. Max 4 active at once.
     func toggleIntegration(_ id: String) {
-        guard id != "integration_claude" else { return }
+        guard id != "integration_claude", id != "integration_today" else { return }
         if activeIntegrations.contains(id) {
             activeIntegrations.remove(id)
             tasks.removeAll { $0.id == id }
             if focusId == id { focusId = "integration_claude" }
         } else {
-            guard activeIntegrations.count < 4 else { return }
+            guard activeIntegrations.subtracting(["integration_today"]).count < 4 else { return }
             activeIntegrations.insert(id)
             if let task = AgentTask.integrationAgents.first(where: { $0.id == id }),
                !tasks.contains(where: { $0.id == id }) {
