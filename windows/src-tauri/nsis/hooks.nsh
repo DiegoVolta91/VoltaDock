@@ -1,6 +1,6 @@
 ; Uninstall hooks for the NSIS installer.
 ;
-; The app stages coucou-hook.exe into %LOCALAPPDATA%\Coucou\bin at launch, so the
+; The app stages voltadock-hook.exe into %LOCALAPPDATA%\VoltaDock\bin at launch, so the
 ; installer never recorded it and the default uninstaller leaves it behind. The
 ; inbox and the log live in the same place and are ours too.
 ;
@@ -11,7 +11,9 @@
 ; printing anything, so a leftover entry costs nothing beyond a dead path.
 
 !macro NSIS_HOOK_PREUNINSTALL
+  RMDir /r "$LOCALAPPDATA\VoltaDock\bin"
+  RMDir /r "$LOCALAPPDATA\VoltaDock\inbox"
+  Delete "$LOCALAPPDATA\VoltaDock\voltadock.log"
+  ; Leftover of builds from before the rename (relay kept for old hook entries).
   RMDir /r "$LOCALAPPDATA\Coucou\bin"
-  RMDir /r "$LOCALAPPDATA\Coucou\inbox"
-  Delete "$LOCALAPPDATA\Coucou\coucou.log"
 !macroend

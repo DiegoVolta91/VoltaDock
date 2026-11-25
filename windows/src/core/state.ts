@@ -41,12 +41,12 @@ export interface SessionInfo {
 export type SessionNote = "permission" | "limit" | "answer" | "error";
 const SESSION_NOTES: readonly string[] = ["permission", "limit", "answer", "error"];
 
-const SESSIONS_KEY = "coucou.sessions";
+const SESSIONS_KEY = "voltadock.sessions";
 const MAX_SESSIONS = 2;
 
 function loadSessions(): SessionInfo[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? "[]");
+    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? localStorage.getItem("coucou.sessions") ?? "[]");
     if (!Array.isArray(raw)) return [];
     // Older builds stored the note as Spanish text: drop it, the detail shows instead.
     return (raw as SessionInfo[]).slice(0, MAX_SESSIONS).map((s) =>

@@ -49,7 +49,7 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../target/release/coucou-hook.exe": "coucou-hook.exe",
+      "../target/release/voltadock-hook.exe": "voltadock-hook.exe",
       "../binaries/docpack.exe": "docpack.exe"
     },
     "copyright": "© 2026 Diego (DiegoVolta91). Based on Coucou © 2026 Louis Raillé (MIT)",

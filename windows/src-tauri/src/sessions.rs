@@ -1,7 +1,7 @@
 // Recent Claude Code conversations, read from the transcripts Claude Code keeps
 // in %USERPROFILE%\.claude\projects\<project>\<session-id>.jsonl.
 //
-// This is what fills the island's "Conversaciones" card when Coucou starts or the
+// This is what fills the island's "Conversaciones" card when VoltaDock starts or the
 // island opens, before any hook event has said a word. Only the tail of each
 // file is read (transcripts grow to megabytes) and only a short line of text is
 // kept from it: nothing is stored or sent anywhere.

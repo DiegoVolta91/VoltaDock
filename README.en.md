@@ -147,7 +147,7 @@ The macOS app is native Swift 6 / SwiftUI / AppKit with **zero third-party depen
 **Windows**
 
 - A [Tauri 2](https://tauri.app) app (Rust + TypeScript): the island is a transparent, always-on-top window that never steals focus, Volt is drawn in Canvas 2D with the same shapes, timings and sounds as on the Mac.
-- Claude Code hooks go through a tiny relay executable (still named `coucou-hook.exe`, after the original project) and a named pipe; keys live in Windows Credential Manager.
+- Claude Code hooks go through a tiny relay executable (`voltadock-hook.exe`) and a named pipe; keys live in Windows Credential Manager.
 - Details and differences in [`windows/README.md`](windows/README.md).
 
 ## Contributing

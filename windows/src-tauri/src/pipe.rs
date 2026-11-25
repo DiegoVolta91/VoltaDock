@@ -1,12 +1,12 @@
-// Named-pipe server for coucou-hook.
+// Named-pipe server for voltadock-hook.
 //
-// `\\.\pipe\coucou-<sid>` — one instance per connection. Every hook event is
+// `\\.\pipe\voltadock-<sid>` — one instance per connection. Every hook event is
 // forwarded to the island as a `hook` event. `PermissionRequest` is the only one
 // that keeps its connection open: it waits for the island's decision and writes
 // it back on the same pipe, which is how approving from the island works.
 //
 // Claude Code is never blocked by us. Three things guarantee it:
-//   * coucou-hook gives the connection 300 ms and exits cleanly if we are closed;
+//   * voltadock-hook gives the connection 300 ms and exits cleanly if we are closed;
 //   * we only wait for a human once the island has *confirmed* the card is on
 //     screen, so a paused island or a webview that is not listening costs a few
 //     hundred milliseconds, not two minutes;
@@ -14,7 +14,7 @@
 //     the terminal takes over.
 //
 // What we write back is the bare word `allow` or `deny`. Turning that into the
-// documented hookSpecificOutput JSON is coucou-hook's job, so the wire format
+// documented hookSpecificOutput JSON is voltadock-hook's job, so the wire format
 // Claude Code expects lives in exactly one place.
 
 use std::collections::HashMap;
@@ -31,7 +31,7 @@ use tokio::sync::mpsc;
 use crate::island::WINDOW_LABEL;
 use crate::log;
 
-/// Slightly under coucou-hook's own 110 s wait, so we always answer first.
+/// Slightly under voltadock-hook's own 110 s wait, so we always answer first.
 const DECISION_TIMEOUT: Duration = Duration::from_secs(108);
 /// How long the island gets to say "the card is up". This is the whole of B4:
 /// without it, an island that is paused, hidden behind a crashed webview or
@@ -61,11 +61,11 @@ pub struct Pending(pub Mutex<HashMap<String, mpsc::Sender<Reply>>>);
 
 static COUNTER: AtomicU64 = AtomicU64::new(1);
 
-/// `\\.\pipe\coucou-<sid>` — must match coucou-hook's `pipe_path()` exactly.
+/// `\\.\pipe\voltadock-<sid>` — must match voltadock-hook's `pipe_path()` exactly.
 pub fn pipe_name() -> String {
     let key = crate::win_user::current_user_sid()
         .unwrap_or_else(|| std::env::var("USERNAME").unwrap_or_else(|_| "user".into()));
-    format!(r"\\.\pipe\coucou-{key}")
+    format!(r"\\.\pipe\voltadock-{key}")
 }
 
 pub fn start(app: AppHandle) {
@@ -159,8 +159,8 @@ async fn handle(app: AppHandle, mut pipe: NamedPipeServer) {
         json!({ "requestId": id, "decision": decision }),
     );
 
-    // No decision: say nothing at all. coucou-hook then writes nothing to stdout
-    // and Claude Code asks in the terminal, exactly as if Coucou were closed.
+    // No decision: say nothing at all. voltadock-hook then writes nothing to stdout
+    // and Claude Code asks in the terminal, exactly as if VoltaDock were closed.
     if let Some(d) = decision {
         let _ = pipe.write_all(format!("{d}\n").as_bytes()).await;
         let _ = pipe.flush().await;
@@ -170,7 +170,7 @@ async fn handle(app: AppHandle, mut pipe: NamedPipeServer) {
 
 /// Two waits: a short one for "the card is up", then the long one for a human.
 /// Both are measured from the moment the request arrived, so the total never
-/// grows past what coucou-hook is willing to wait.
+/// grows past what voltadock-hook is willing to wait.
 async fn wait_for_decision(id: &str, rx: &mut mpsc::Receiver<Reply>) -> Option<String> {
     let arrived = tokio::time::Instant::now();
     let ack_window = if crate::remote::has_viewers() { REMOTE_ACK_TIMEOUT } else { ACK_TIMEOUT };
@@ -254,7 +254,7 @@ pub fn remote_acknowledge(app: &AppHandle, request_id: &str) {
 }
 
 /// Called by the island's Allow / Deny buttons. Only ever a bare word: turning
-/// it into Claude Code's JSON is coucou-hook's job.
+/// it into Claude Code's JSON is voltadock-hook's job.
 pub fn answer(app: &AppHandle, request_id: &str, decision: &str) {
     let word = match decision {
         "allow" | "always" => "allow",

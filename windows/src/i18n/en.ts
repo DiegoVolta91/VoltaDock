@@ -229,7 +229,7 @@ export const en: Messages = {
       notConnected:
         "Install the hooks to see your Claude Code sessions in the island and approve permissions without leaving what you are doing.",
       hookMissing:
-        "coucou-hook.exe is not in place yet. Restart VoltaDock; if it still fails, build it with `cargo build -p coucou-hook`.",
+        "coucou-hook.exe is not in place yet. Restart VoltaDock; if it still fails, build it with `cargo build -p voltadock-hook`.",
       install: "Install hooks…",
       reinstall: "Reinstall hooks…",
       relayMissing: "The relay isn't installed yet.",

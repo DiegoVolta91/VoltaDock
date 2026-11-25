@@ -1,4 +1,4 @@
-// Coucou for Windows — app wiring and the commands the island calls.
+// VoltaDock for Windows — app wiring and the commands the island calls.
 
 mod claude;
 mod docpack;
@@ -9,6 +9,7 @@ mod i18n;
 mod integrations;
 mod island;
 mod log;
+mod migrate;
 mod pipe;
 mod projects;
 mod remote;
@@ -92,13 +93,13 @@ fn save_settings(app: AppHandle, shared: State<Shared>, mut settings: Settings) 
         }
     }
     if let Err(err) = settings::save(&settings) {
-        eprintln!("[coucou] could not save settings: {err}");
+        eprintln!("[voltadock] could not save settings: {err}");
     }
     if autostart_changed {
         let manager = app.autolaunch();
         let result = if settings.autostart { manager.enable() } else { manager.disable() };
         if let Err(err) = result {
-            eprintln!("[coucou] autostart: {err}");
+            eprintln!("[voltadock] autostart: {err}");
         }
     }
     if screen_changed {
@@ -179,7 +180,7 @@ fn open_claude_session(session_id: Option<String>, kind: String) -> bool {
     use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
     let url = match kind.as_str() {
-        "needs-input" => "claude://code/needs-input?source=coucou".to_string(),
+        "needs-input" => "claude://code/needs-input?source=voltadock".to_string(),
         "resume" => match session_id.as_deref().filter(|id| is_uuid(id)) {
             Some(id) => format!("claude://resume?session={id}"),
             None => return false,
@@ -231,7 +232,7 @@ fn open_project_session(path: String) -> bool {
     if !std::path::Path::new(&path).is_dir() {
         return false;
     }
-    let url = format!("claude://code/new?folder={}&source=coucou", projects::url_encode(&path));
+    let url = format!("claude://code/new?folder={}&source=voltadock", projects::url_encode(&path));
     let result = unsafe {
         ShellExecuteW(None, w!("open"), &HSTRING::from(url), None, None, SW_SHOWNORMAL)
     };
@@ -581,6 +582,8 @@ fn open_settings_window(app: AppHandle) {
 }
 
 pub fn run() {
+    // Before anything reads settings or secrets: see migrate.rs.
+    migrate::run();
     let loaded = settings::load();
     i18n::apply(&loaded.language);
     let gate = Arc::new(PollGate::new());
@@ -650,7 +653,7 @@ pub fn run() {
             gate.set_active(true);
             island::spawn_cursor_poll(handle.clone(), gate.clone());
 
-            log::line(format!("--- Coucou {} started ---", env!("CARGO_PKG_VERSION")));
+            log::line(format!("--- VoltaDock {} started ---", env!("CARGO_PKG_VERSION")));
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
             remote::apply(&handle, loaded.remote_enabled);
@@ -659,5 +662,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running Coucou");
+        .expect("error while running VoltaDock");
 }
