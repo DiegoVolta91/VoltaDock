@@ -36,6 +36,11 @@ permissions:
 # 'true' once the installer is signed or the detection is cleared.
 env:
   PUBLISH: 'false'
+  # Signing runs on release tags once SignPath is set up: add the repository
+  # variables SIGNPATH_ORGANIZATION_ID and SIGNPATH_PROJECT_SLUG and the secret
+  # SIGNPATH_API_TOKEN (Settings -> Secrets and variables -> Actions). Until
+  # then tags build unsigned, and the publish steps refuse to run.
+  SIGN: ${{ startsWith(github.ref, 'refs/tags/windows-v') && vars.SIGNPATH_ORGANIZATION_ID != '' }}
 
 jobs:
   build:
@@ -87,7 +92,8 @@ jobs:
       # `npm run build` (run by tauri as beforeBuildCommand) builds coucou-hook
       # first, which tauri.conf.json then bundles as a resource. `pack` then
       # copies the installer out of target/ under its shipping name.
-      - name: Build and pack the installer
+      - name: Build and pack the installer (unsigned)
+        if: env.SIGN != 'true'
         id: pack
         shell: pwsh
         run: |
@@ -96,6 +102,115 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           Get-ChildItem release | Format-Table Name, Length
 
+      # Signed path. The app and the hook are signed before NSIS wraps them, so
+      # what lands on disk is signed too, then the installer itself is signed.
+      # That is two SignPath requests per release, each approved by hand.
+      - name: Build the app and the hook
+        if: env.SIGN == 'true'
+        id: version
+        shell: pwsh
+        run: |
+          npx tauri build --no-bundle
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Upload the unsigned binaries for SignPath
+        if: env.SIGN == 'true'
+        id: unsigned-binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-binaries
+          path: |
+            windows/target/release/coucou.exe
+            windows/target/release/coucou-hook.exe
+          if-no-files-found: error
+
+      - name: Sign the app and the hook
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: binaries
+          github-artifact-id: ${{ steps.unsigned-binaries.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: windows/target/release
+
+      - name: Bundle the signed binaries into the installer
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          npx tauri bundle
+          node scripts/pack.mjs
+
+      - name: Upload the unsigned installer for SignPath
+        if: env.SIGN == 'true'
+        id: unsigned-installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer
+          path: windows/release/Coucou-Windows-${{ steps.version.outputs.version }}-setup.exe
+          if-no-files-found: error
+
+      - name: Sign the installer
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: windows/release-signed
+
+      # The rolling file is the same bytes as the versioned one, so both are
+      # replaced with the signed copy. Then nothing leaves this job unless all
+      # three programs carry a valid signature.
+      - name: Check every program is signed
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          Copy-Item "release-signed/Coucou-Windows-$v-setup.exe" "release/Coucou-Windows-$v-setup.exe" -Force
+          Copy-Item "release-signed/Coucou-Windows-$v-setup.exe" "release/Coucou-Windows-setup.exe" -Force
+          $files = @(
+            "target/release/coucou.exe",
+            "target/release/coucou-hook.exe",
+            "release/Coucou-Windows-$v-setup.exe",
+            "release/Coucou-Windows-setup.exe"
+          )
+          $bad = @()
+          foreach ($f in $files) {
+            $sig = Get-AuthenticodeSignature $f
+            "{0}: {1} ({2})" -f $f, $sig.Status, $sig.SignerCertificate.Subject
+            if ($sig.Status -ne 'Valid') { $bad += $f }
+          }
+          if ($bad) { throw "not signed: $($bad -join ', ')" }
+
+      # Defender's own verdict on what is about to ship. A detection here fails
+      # the run rather than putting a flagged installer on the Releases page.
+      - name: Scan the installer with Microsoft Defender
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $mp = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
+          if (-not (Test-Path $mp)) { "Defender is not available on this runner; skipping."; exit 0 }
+          & $mp -SignatureUpdate | Out-Null
+          $f = (Resolve-Path "release/Coucou-Windows-${{ steps.version.outputs.version }}-setup.exe").Path
+          & $mp -Scan -ScanType 3 -File $f -DisableRemediation
+          if ($LASTEXITCODE -eq 2) { throw "Microsoft Defender flagged $f" }
+          if ($LASTEXITCODE -ne 0) { "MpCmdRun exited with $LASTEXITCODE; not treated as a detection." }
+
+      # Releases only ever carry a signed installer.
+      - name: Refuse to publish an unsigned installer
+        if: env.PUBLISH == 'true' && startsWith(github.ref, 'refs/tags/windows-v') && env.SIGN != 'true'
+        shell: pwsh
+        run: throw "PUBLISH is on but SignPath is not configured, so this installer is unsigned."
+
       # Builds from main and pull requests keep the installer as a downloadable
       # artifact (no release), so a branch can be tried on a real Windows
       # machine. Tag builds only upload it when publishing is on.
@@ -103,7 +218,7 @@ jobs:
         if: env.PUBLISH == 'true' || !startsWith(github.ref, 'refs/tags/')
         with:
           name: Coucou-Windows-setup
-          path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
+          path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version || steps.version.outputs.version }}-setup.exe
           retention-days: 14
 
       - name: Publish the release
@@ -112,13 +227,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $v = "${{ steps.pack.outputs.version }}"
+          $v = "${{ steps.pack.outputs.version || steps.version.outputs.version }}"
           $notes = @"
           Coucou for Windows $v — Mochi at the top of your screen.
 
-          Download ``Coucou-Windows-$v-setup.exe`` and run it. The installer is not
-          code-signed yet, so Windows SmartScreen shows a warning: click
-          **More info → Run anyway**.
+          Download ``Coucou-Windows-$v-setup.exe`` and run it. The installer is
+          signed (free code signing provided by SignPath.io, certificate by
+          SignPath Foundation). SmartScreen may still warn while the certificate
+          builds reputation: click **More info → Run anyway**.
           "@
           # --latest=false is not cosmetic: without it GitHub hands "Latest" to
           # whichever release was published last, and the site's Download for Mac
@@ -136,7 +252,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $v = "${{ steps.pack.outputs.version }}"
+          $v = "${{ steps.pack.outputs.version || steps.version.outputs.version }}"
           $exists = gh release view windows-latest 2>$null
           if ($LASTEXITCODE -eq 0) {
             # The tag has to follow the release, or windows-latest keeps pointing

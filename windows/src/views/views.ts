@@ -14,6 +14,7 @@ import { renderIntegrationCard, sessionsCard, type IntegrationCardHooks } from "
 import { refreshSessions } from "../island/hooks";
 import { Bridge } from "../core/bridge";
 import { refreshProjects, refreshUsage } from "../core/panels";
+import { buildTodayAlert, buildTodayCard } from "./today";
 
 export interface ViewActions {
   setView(v: IslandViewName): void;
@@ -132,9 +133,17 @@ function buildOverview(actions: ViewActions): ViewHost {
   const who = h("div", { class: "who" });
   const tickerBody = h("div", { class: "card-body" }, who, ticker.el);
   const leftBody = h("div", { class: "left-body" });
+  // The Hoy card is built once and kept: it holds a text field, and rebuilding
+  // it on every change would drop what you are typing.
+  const todayCard = buildTodayCard();
   const jump = h(
     "button",
-    { class: "icon-btn jump", title: "Abrir", onclick: () => actions.openTarget() },
+    {
+      class: "icon-btn jump",
+      title: "Abrir",
+      // Hoy has nothing to open outside: ↗ shows its full list instead.
+      onclick: () => (State.focusTask?.id === "integration_today" ? todayCard.toggleList() : actions.openTarget()),
+    },
     svg(ICONS.arrowUpRight, 8),
   );
   const left = card(null, leftBody, jump);
@@ -149,7 +158,7 @@ function buildOverview(actions: ViewActions): ViewHost {
   let pillIds = "";
   let detailOpen = false;
   let lastFocus: string | null = null;
-  let mode: "ticker" | "card" | null = null;
+  let mode: "ticker" | "card" | "today" | null = null;
   let cardKey = "";
   let lastMinute = Math.floor(Date.now() / 60000);
 
@@ -201,7 +210,15 @@ function buildOverview(actions: ViewActions): ViewHost {
       const sessionActive =
         isClaude && (task.state !== "idle" || task.steps.length > 0) && !showSessions;
 
-      if (task && showSessions) {
+      if (task?.id === "integration_today") {
+        if (mode !== "today") {
+          clear(leftBody);
+          leftBody.append(todayCard.el);
+          mode = "today";
+          cardKey = "";
+        }
+        todayCard.sync();
+      } else if (task && showSessions) {
         const key = [
           "sessions", detailOpen,
           State.sessions.map((s) => `${s.id}:${s.status}:${s.detail}:${s.lastSeen}`).join("|"),
@@ -691,6 +708,7 @@ export function buildViews(
   map.set("settings", buildSettings(actions));
   map.set("projects", buildProjects());
   map.set("usage", buildUsage());
+  map.set("reminder", buildTodayAlert());
   map.set("prompt", buildPrompt(onChatHeightChange));
   map.set("upload", buildUpload());
   map.set("uploading", buildUploading());

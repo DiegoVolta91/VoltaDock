@@ -23,6 +23,7 @@ export type IslandViewName =
   | "settings"
   | "projects"
   | "usage"
+  | "reminder"
   | "greeting";
 
 export type BotStateName =
@@ -89,6 +90,8 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   settings: { height: 160, botX: 54, botY: null, botDiameter: 46, agentMode: "none" },
   projects: { height: 160, botX: 54, botY: null, botDiameter: 46, agentMode: "none" },
   usage: { height: 160, botX: 54, botY: null, botDiameter: 46, agentMode: "none" },
+  // Hoy: a reminder came due, or a focus block / break ended.
+  reminder: { height: 160, botX: 62, botY: null, botDiameter: 56, agentMode: "column" },
   greeting: { height: 150, botX: 320, botY: 90, botDiameter: 0, agentMode: "none" },
 };
 

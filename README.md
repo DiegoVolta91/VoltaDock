@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="NotchBuddy/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="96" alt="Coucou icon">
+<img src="NotchBuddy/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="96" alt="VoltaDock icon">
 
-# Coucou
+# VoltaDock
 
 **A tiny friend that lives in your MacBook's notch — or at the top of your screen on Windows — and keeps an eye on your Claude Code sessions.**
 
@@ -14,9 +14,9 @@ Approve permissions, watch your agents work, drop a file, chat with Claude — a
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-native-0A84FF)
 ![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![GitHub stars](https://img.shields.io/github/stars/Louis-CFM/coucou?style=social)
+![GitHub stars](https://img.shields.io/github/stars/DiegoVolta91/coucou?style=social)
 
-<img src="docs/media/demo.gif" width="760" alt="Coucou in action">
+<img src="docs/media/demo.gif" width="760" alt="VoltaDock in action">
 
 </div>
 
@@ -25,7 +25,7 @@ Approve permissions, watch your agents work, drop a file, chat with Claude — a
 ## Why
 
 Some studios showed off gorgeous notch companions… and never let anyone use them.
-**Coucou is the open version.** Every line of code, every animation, every sound — free to use, read, fork and remix.
+**VoltaDock is an open one.** Every line of code is free to use, read, fork and remix.
 
 Meet **Mochi**: a soft little squircle with big eyes that pops out of your notch, waves hello, follows your cursor with its eyes, gets annoyed when you poke it (and dizzy if you insist), and tells you the moment Claude Code needs you.
 
@@ -37,6 +37,7 @@ Meet **Mochi**: a soft little squircle with big eyes that pops out of your notch
 - 💬 **Ask Claude anything** — built-in chat, straight from the notch.
 - 📎 **Drop a file on the notch** — Mochi turns into a box and swallows it, then ask a question about it or send it by email *(email: macOS, Mail.app)*.
 - 🪟 **Drag Mochi onto any window** — attach that window as context for Claude *(macOS)*.
+- ⏱️ **Today** — a 25-minute focus timer with its countdown under the island, quick to-dos and reminders typed in plain words (“in 10 min stretch”, “tomorrow at 9 dentist”, “a las 17:30 gym”). Reminders that came due while the computer slept show up when it wakes. Everything stays on your machine. Turn the **Today** pill on in Settings.
 - 🔌 **Integrations** — Stripe payments, n8n workflows, GitHub, Vercel deployments, Resend emails, Notion, Cal.com. Each one gets its own little colored Mochi.
 - 🎭 **A real character** — idle breathing, blinks, eyes on a sphere that follow your mouse, emotes, 28 handcrafted sounds, a greeting on launch.
 - 🫥 **Invisible when idle** — hides away when nothing is running, peeks out when you hover the notch (the top edge of the screen on Windows).
@@ -57,8 +58,8 @@ Meet **Mochi**: a soft little squircle with big eyes that pops out of your notch
 
 ### Download for macOS
 
-1. Grab the latest `Coucou.zip` from [Releases](https://github.com/Louis-CFM/coucou/releases).
-2. Unzip and move **Coucou.app** to `/Applications`.
+1. Grab the latest `VoltaDock.zip` from [Releases](https://github.com/DiegoVolta91/coucou/releases).
+2. Unzip and move **VoltaDock.app** to `/Applications`.
 3. Launch. This build isn't notarized by Apple yet, so the first time macOS says it can't verify the developer: open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (only once).
 
 ### Windows
@@ -67,6 +68,13 @@ The Windows installer is **temporarily unavailable**. Microsoft Defender wrongly
 flags the unsigned installer as malware; a false-positive report is under review
 at Microsoft and the installer will come back once it is cleared and signed.
 Until then you can [build it from source](#build-from-source).
+
+#### Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). Only installers built by GitHub
+Actions from this repository are signed, each one approved by hand. Roles and
+details: [code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html).
 
 There is no notch on a PC, so the island slides out of the top edge of the screen
 instead of hiding inside one. See [`windows/README.md`](windows/README.md) for the
@@ -78,7 +86,7 @@ rest of the differences.
 
 ```bash
 brew install xcodegen
-git clone https://github.com/Louis-CFM/coucou.git
+git clone https://github.com/DiegoVolta91/coucou.git
 cd coucou/NotchBuddy
 xcodegen
 open NotchBuddy.xcodeproj   # then ⌘R
@@ -87,7 +95,7 @@ open NotchBuddy.xcodeproj   # then ⌘R
 **Windows** — requirements: [Rust](https://rustup.rs), Node 20+, MSVC build tools.
 
 ```powershell
-git clone https://github.com/Louis-CFM/coucou.git
+git clone https://github.com/DiegoVolta91/coucou.git
 cd coucou/windows
 npm install
 npm run pack                # installer lands in windows/release/
@@ -95,15 +103,15 @@ npm run pack                # installer lands in windows/release/
 
 ## Setup
 
-Click the Coucou icon in the menu bar (macOS) or in the system tray (Windows) → **Settings…**
+Click the VoltaDock icon in the menu bar (macOS) or in the system tray (Windows) → **Settings…**
 
 | What | Why | Where the key goes |
 |---|---|---|
-| **Claude Code hooks** | live sessions and approvals | **Install hooks** — Coucou backs up `~/.claude/settings.json`, merges its hooks and shows you the diff before writing anything |
+| **Claude Code hooks** | live sessions and approvals | **Install hooks** — VoltaDock backs up `~/.claude/settings.json`, merges its hooks and shows you the diff before writing anything |
 | **Anthropic API key** | chat and questions about files | Keychain / Windows Credential Manager |
 | Stripe, n8n, GitHub, Vercel, Resend, Notion, Cal.com | the integration pills | Keychain / Windows Credential Manager, all optional |
 
-If Coucou isn't running, the hook exits immediately: **Claude Code is never blocked.**
+If VoltaDock isn't running, the hook exits immediately: **Claude Code is never blocked.**
 
 ## Things to try
 
@@ -141,18 +149,19 @@ Issues and PRs are very welcome — new integrations, new emotes, new sounds, bu
 
 ## Credits
 
-Built by [Louis Raillé](https://louisraille.fr) with Claude Code.
+Built by Diego ([@DiegoVolta91](https://github.com/DiegoVolta91)) with Claude Code.
+VoltaDock started as a fork of [Coucou](https://github.com/Louis-CFM/coucou) by Louis Raillé (MIT) and is now developed independently.
 Inspired by the notch-companion concepts shared by design studios — this project is independent and not affiliated with any of them.
 
 ## License
 
 - **Code:** [MIT](LICENSE) — use it, fork it, learn from it, just keep the copyright notice.
-- **Name, Mochi character, icon, sounds and media:** © Louis Raillé, all rights reserved — see [LICENSE-ASSETS.md](LICENSE-ASSETS.md). Shipping your own fork? Give it your own name and character.
+- **Mochi character, icon, sounds and media inherited from Coucou:** © Louis Raillé, all rights reserved, not covered by the MIT License — see [LICENSE-ASSETS.md](LICENSE-ASSETS.md). They are being replaced with VoltaDock's own before any public release.
 
 <div align="center">
 
 **If Mochi made you smile, a ⭐ helps a lot.**
 
-[Website](https://louis-cfm.github.io/coucou/) · [Privacy](https://louis-cfm.github.io/coucou/privacy.html) · [Terms](https://louis-cfm.github.io/coucou/terms.html) · [Support](https://louis-cfm.github.io/coucou/support.html)
+[Website](https://diegovolta91.github.io/VoltaDock/) · [Privacy](https://diegovolta91.github.io/VoltaDock/privacy.html) · [Terms](https://diegovolta91.github.io/VoltaDock/terms.html) · [Support](https://diegovolta91.github.io/VoltaDock/support.html) · [Code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html)
 
 </div>

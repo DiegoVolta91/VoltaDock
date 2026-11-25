@@ -25,6 +25,7 @@ struct IslandViewContent: View {
         case .note:      NoteView(state: state)
         case .settings:  SettingsIslandView(state: state)
         case .greeting:  EmptyView()  // GreetingCanvasView overlaid in IslandRootView
+        case .reminder:  TodayAlertView()
         }
     }
 }
@@ -139,6 +140,9 @@ struct OverviewView: View {
             NSWorkspace.shared.open(URL(string: "https://notion.so")!)
         case "integration_calcom":
             NSWorkspace.shared.open(URL(string: "https://app.cal.com/bookings")!)
+        case "integration_today":
+            // Nothing to open outside: ↗ shows the full list instead.
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showingN8nDetail = true }
         default:
             // Non-integration real tasks
             if task.source == .n8n {
@@ -960,7 +964,7 @@ struct IntegrationCardView: View {
         case "integration_claude":
             #if APPSTORE
             // Sandboxed: can't read ~/.claude directly — check install flag set by HookServer
-            return UserDefaults.standard.bool(forKey: "coucouHooksInstalled")
+            return UserDefaults.standard.bool(forKey: "voltadockHooksInstalled")
             #else
             let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/settings.json")
             guard let data = try? Data(contentsOf: url),
@@ -969,7 +973,7 @@ struct IntegrationCardView: View {
                   let ss = hooks["SessionStart"] as? [[String: Any]] else { return false }
             return ss.contains { ($0["hooks"] as? [[String: Any]])?.contains {
                 let cmd = $0["command"] as? String
-                return cmd?.contains("NotchBuddy") == true || cmd?.contains("coucou") == true
+                return HookServer.isOwnHook(cmd)
             } ?? false }
             #endif
         case "integration_resend":  return KeychainStore.shared.get("resend-api-key") != nil
@@ -979,6 +983,7 @@ struct IntegrationCardView: View {
         case "integration_stripe":  return KeychainStore.shared.get("stripe-api-key") != nil
         case "integration_notion":  return KeychainStore.shared.get("notion-api-key") != nil
         case "integration_calcom":  return KeychainStore.shared.get("calcom-api-key") != nil
+        case "integration_today":   return true
         default: return false
         }
     }
@@ -1041,7 +1046,9 @@ struct IntegrationCardView: View {
     }
 
     var body: some View {
-        if showingDetail && n8nHasActivity {
+        if task.id == "integration_today" {
+            TodayCardView(showingDetail: $showingDetail)
+        } else if showingDetail && n8nHasActivity {
             N8nDetailView(task: task) {
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showingDetail = false }
             }
@@ -2696,7 +2703,7 @@ struct SettingsIslandView: View {
               let ss = hooks["SessionStart"] as? [[String: Any]] else { return false }
         return ss.contains { matcher in
             (matcher["hooks"] as? [[String: Any]])?.contains {
-                ($0["command"] as? String)?.contains("NotchBuddy") == true
+                HookServer.isOwnHook($0["command"] as? String)
             } ?? false
         }
     }

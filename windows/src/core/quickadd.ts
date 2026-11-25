@@ -1,0 +1,106 @@
+// Quick add for the "Hoy" card: turns a short line such as "en 10 min estirar",
+// "mañana a las 9 dentista" or "at 5pm call Ana" into a title and an optional
+// due time. No model involved, just a few patterns, so it works offline and
+// never sends what you type anywhere. Mirror of QuickAdd in TodayStore.swift:
+// keep the two in step.
+
+export interface QuickAdd {
+  title: string;
+  /** Epoch ms; null = a plain to-do with no time. */
+  dueAt: number | null;
+  /** True for "in 10 min" style input, which is shown as a timer. */
+  relative: boolean;
+}
+
+const UNIT_MS: [RegExp, number][] = [
+  [/^(h|hr|hrs|hour|hours|hora|horas)$/, 3_600_000],
+  [/^(m|min|mins|minute|minutes|minuto|minutos)$/, 60_000],
+];
+
+// Order matters: a time written with "at"/"a las" wins over the relative form,
+// so "a las 9h" is nine o'clock, not nine hours from now.
+const AT_TIME = /(?:^|\s)(?:at|a\s+las|a\s+la|@)\s*(\d{1,2})(?:[:.h](\d{2})|h)?\s*(am|pm)?(?=\s|$|[,.!?])/i;
+const RELATIVE = /(?:^|\s)(?:(?:in|en|dentro\s+de)\s+)?(\d{1,3})\s*(h|hr|hrs|hours?|horas?|m|mins?|minutes?|minutos?)(?=\s|$|[,.!?])/i;
+const BARE_TIME = /(?:^|\s)(\d{1,2})(?::(\d{2})\s*(am|pm)?|\s*(am|pm))(?=\s|$|[,.!?])/i;
+const DAY_WORD = /(?:^|\s)(tomorrow|mañana|manana|today|hoy)(?=\s|$|[,.!?])/i;
+const LEAD_IN = /^(?:remind\s+me\s+(?:to\s+)?|reminder:?\s*|recu[eé]rdame\s+(?:que\s+|de\s+)?|recordatorio:?\s*|timer:?\s*|temporizador(?:\s+de)?:?\s*)/i;
+
+function toHour(h: number, m: number, ampm: string | undefined): [number, number] | null {
+  let hour = h;
+  const mer = ampm?.toLowerCase();
+  if (mer === "pm" && hour < 12) hour += 12;
+  if (mer === "am" && hour === 12) hour = 0;
+  if (hour > 23 || m > 59) return null;
+  return [hour, m];
+}
+
+export function parseQuickAdd(
+  raw: string,
+  now: Date = new Date(),
+  fallback = { timer: "Temporizador", reminder: "Recordatorio" },
+): QuickAdd | null {
+  let text = ` ${raw.trim()} `;
+  if (!text.trim()) return null;
+
+  let due: Date | null = null;
+  let relative = false;
+  let clock: [number, number] | null = null;
+  let dayOffset: number | null = null;
+
+  const cut = (m: RegExpMatchArray) => {
+    text = text.slice(0, m.index!) + " " + text.slice(m.index! + m[0].length);
+  };
+
+  const at = text.match(AT_TIME);
+  if (at) {
+    clock = toHour(Number(at[1]), Number(at[2] ?? 0), at[3]);
+    if (clock) cut(at);
+  }
+
+  if (!clock) {
+    const rel = text.match(RELATIVE);
+    if (rel) {
+      const unit = UNIT_MS.find(([re]) => re.test(rel[2].toLowerCase()));
+      const n = Number(rel[1]);
+      if (unit && n > 0) {
+        due = new Date(now.getTime() + n * unit[1]);
+        relative = true;
+        cut(rel);
+      }
+    }
+  }
+
+  if (!clock && !relative) {
+    const bare = text.match(BARE_TIME);
+    if (bare) {
+      clock = toHour(Number(bare[1]), Number(bare[2] ?? 0), bare[3] ?? bare[4]);
+      if (clock) cut(bare);
+    }
+  }
+
+  if (!relative) {
+    const day = text.match(DAY_WORD);
+    if (day) {
+      const w = day[1].toLowerCase();
+      dayOffset = w === "today" || w === "hoy" ? 0 : 1;
+      cut(day);
+    }
+  }
+
+  if (!relative && (clock || dayOffset === 1)) {
+    const [hh, mm] = clock ?? [9, 0];
+    const d = new Date(now);
+    d.setHours(hh, mm, 0, 0);
+    if (dayOffset) d.setDate(d.getDate() + dayOffset);
+    // "at 9" when nine has already gone means tomorrow morning.
+    else if (dayOffset === null && d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
+    due = d;
+  }
+
+  let title = text.replace(/\s+/g, " ").trim().replace(LEAD_IN, "");
+  title = title.replace(/^[\s,.:;\-–]+|[\s,.:;\-–]+$/g, "").trim();
+  if (!title) title = relative ? fallback.timer : fallback.reminder;
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+
+  return { title, dueAt: due ? due.getTime() : null, relative };
+}

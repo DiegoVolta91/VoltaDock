@@ -40,6 +40,11 @@ export const ICONS = {
   star: "M12 3.2l2.6 5.55 5.9.82-4.3 4.3 1.05 6.13L12 17.1l-5.25 2.9L7.8 13.87 3.5 9.57l5.9-.82L12 3.2z",
   // square.stack.fill
   stack: "M5 8h14v11.5H5V8zm1.8-3h10.4v1.6H6.8V5zm1.6-2.6h7.2V4H8.4V2.4z",
+  // play.fill / pause.fill / stop.fill / forward.fill (Hoy focus timer)
+  play: "M8 5v14l11-7L8 5z",
+  pause: "M7 5h3.5v14H7V5zm6.5 0H17v14h-3.5V5z",
+  stop: "M6.5 6.5h11v11h-11v-11z",
+  forward: "M3.5 6v12l8-6-8-6zm8.5 0v12l8-6-8-6z",
   // doc.text
   doc: "M6.5 2.6h7l4 4v14.8h-11V2.6zm6.6 1.6v3.3h3.3l-3.3-3.3zM8.6 11h6.8v1.5H8.6V11zm0 3.4h6.8v1.5H8.6v-1.5z",
 } as const;
