@@ -23,7 +23,26 @@ th{color:var(--dim);font-weight:600}
 code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:14px;word-break:break-all}
 hr{border:0;border-top:1px solid var(--line);margin:56px 0 32px}
 footer{color:var(--dim);font-size:13px;margin-top:56px;border-top:1px solid var(--line);padding-top:18px}
-.hero{text-align:center;margin:10px 0 30px}.hero img.demo{width:100%;border-radius:14px;border:1px solid var(--line);margin-top:22px}
+.hero{text-align:center;margin:10px 0 30px}.hero img.demo{width:100%;border-radius:14px;border:1px solid var(--line);margin-top:10px}
 .btn{display:inline-block;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;margin:6px}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 @media (max-width:560px){h1{font-size:26px}nav{margin-left:0;width:100%}}
+/* Language switch: Spanish by default, English on demand (lang.js). */
+html[data-lang="es"] [data-lang="en"],html[data-lang="en"] [data-lang="es"]{display:none!important}
+.lang button{all:unset;cursor:pointer;padding:4px 12px;color:var(--dim)}
+.lang button:first-child{border-right:1px solid var(--line)}
+.lang button[aria-pressed="true"]{color:var(--ink);font-weight:600;background:var(--card)}
+header .lang{margin:0 0 0 4px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:18px 0}
+.features .card{margin:0}
+.features .card>b:first-child{display:block;margin-bottom:2px}
+.shot{margin:18px 0}
+.shot img{width:100%;border-radius:14px;border:1px solid var(--line);display:block}
+.shot figcaption{color:var(--dim);font-size:13px;margin-top:6px}
+.states{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}
+.states figure{margin:0;text-align:center;background:#0e0f12;border:1px solid var(--line);border-radius:14px;padding:6px 4px 8px}
+.states img{width:100%;max-width:120px}
+.states figcaption{font-size:12px;color:#a1a6b0}
+.note{color:var(--dim);font-size:13px}
+.badge{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--dim);margin-left:6px;vertical-align:middle}
+@media (max-width:560px){.states{grid-template-columns:repeat(2,1fr)}}

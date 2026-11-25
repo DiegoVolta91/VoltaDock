@@ -4,7 +4,7 @@ VoltaDock is an independent project that started as a fork of [Coucou](https://g
 
 VoltaDock's character **Volt**, its app and menu bar icons and its 28 sounds are VoltaDock's own: they are drawn and synthesised in code (`NotchBuddy/Sources/App/VoltShape.swift`, `windows/src/mochi/volt.ts`, `windows/scripts/gen-icons.mjs`, `scripts/gen-sounds.py`) and are covered by the MIT License like the rest of the code.
 
-Some files still come from Coucou and are **not** covered by the MIT License: the images, GIFs and videos in `docs/media/` and `design/` (they show Coucou's character, Mochi). They remain the property of Louis Raillé under the terms quoted below and will be replaced with Volt captures. The names "Coucou" and "Mochi" are not used for VoltaDock; `Mochi`/`mochi` only survives as an internal code name in a few source files.
+The screenshots and demo in `docs/media/` are VoltaDock captures of Volt (MIT). Some files still come from Coucou and are **not** covered by the MIT License: the design references in `design/` (they show Coucou's character, Mochi). They remain the property of Louis Raillé under the terms quoted below. The names "Coucou" and "Mochi" are not used for VoltaDock; `Mochi`/`mochi` only survives as an internal code name in a few source files.
 
 The original Coucou notice, unchanged:
 

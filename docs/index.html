@@ -1,13 +1,100 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A tiny friend in your notch — VoltaDock</title><link rel="icon" href="media/icon.png"><link rel="stylesheet" href="site.css"></head><body><div class="wrap">
+<!doctype html><html lang="es" data-lang="es" data-title-es="Un pequeño compañero en tu notch — VoltaDock" data-title-en="A tiny friend in your notch — VoltaDock"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Un pequeño compañero en tu notch — VoltaDock</title><meta name="description" content="VoltaDock: Volt, un pequeño compañero en la parte de arriba de tu pantalla que sigue tus sesiones de Claude Code. / A tiny friend at the top of your screen that keeps an eye on your Claude Code sessions.">
+<link rel="icon" href="media/icon.png"><link rel="stylesheet" href="site.css"><script src="lang.js"></script></head><body><div class="wrap">
 <header><a href="index.html"><img src="media/icon.png" alt=""></a><span class="name">VoltaDock</span>
-<nav><a href="index.html" class="on">Home</a><a href="support.html">Support</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="legal.html">Legal</a></nav></header>
+<div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-set="es" aria-pressed="true">Español</button><button type="button" data-set="en" aria-pressed="false">English</button></div>
+<nav><a href="index.html" class="on"><span data-lang="es">Inicio</span><span data-lang="en">Home</span></a><a href="support.html"><span data-lang="es">Ayuda</span><span data-lang="en">Support</span></a><a href="privacy.html"><span data-lang="es">Privacidad</span><span data-lang="en">Privacy</span></a><a href="terms.html"><span data-lang="es">Términos</span><span data-lang="en">Terms</span></a><a href="legal.html"><span data-lang="es">Aviso legal</span><span data-lang="en">Legal</span></a></nav></header>
 <div class="hero">
-<h1>A tiny friend that lives in your notch</h1>
-<p class="meta" style="font-size:17px">VoltaDock watches your Claude Code sessions, lets you approve its requests from the notch, and keeps an eye on Stripe, GitHub, Vercel, n8n and more. Free and open source.</p>
-<a class="btn" href="https://github.com/DiegoVolta91/coucou/releases/latest">Download for Mac</a><a class="btn ghost" href="https://github.com/DiegoVolta91/coucou">View on GitHub</a>
-<img class="demo" src="media/demo.gif" alt="VoltaDock in action">
+<h1 data-lang="es">Un pequeño compañero que vive en tu notch</h1>
+<h1 data-lang="en">A tiny friend that lives in your notch</h1>
+<p class="meta" style="font-size:17px" data-lang="es">Conoce a <b>Volt</b>, una pila con antena de rayo. VoltaDock sigue tus sesiones de Claude Code, te deja aprobar sus permisos con un clic y vigila Stripe, GitHub, Vercel, n8n y más, desde el notch de tu MacBook o desde la parte de arriba de la pantalla en Windows. Gratis y de código abierto.</p>
+<p class="meta" style="font-size:17px" data-lang="en">Meet <b>Volt</b>, a little battery with a lightning-bolt antenna. VoltaDock follows your Claude Code sessions, lets you approve its requests in one click and keeps an eye on Stripe, GitHub, Vercel, n8n and more, from your MacBook's notch or from the top edge of the screen on Windows. Free and open source.</p>
+<a class="btn" href="https://github.com/DiegoVolta91/VoltaDock/releases/latest"><span data-lang="es">Descargar para Mac</span><span data-lang="en">Download for Mac</span></a><a class="btn ghost" href="https://github.com/DiegoVolta91/VoltaDock"><span data-lang="es">Ver en GitHub</span><span data-lang="en">View on GitHub</span></a>
+<figure class="shot"><img class="demo" src="media/demo.gif" alt="Volt saluda, sigue una sesión de Claude Code, pide permiso y celebra cuando termina"><figcaption data-lang="es">Grabación de la versión de Windows con datos de ejemplo.</figcaption><figcaption data-lang="en">Recorded from the Windows version with sample data.</figcaption></figure>
 </div>
-<div class="card"><b>Private by design.</b> No account, no analytics, no tracking. Your keys stay in your Keychain, or in Windows Credential Manager. <a href="privacy.html">Read the privacy policy</a>.</div>
-<p class="meta">Requires macOS 15 or later. The Windows download is paused for now: Microsoft Defender wrongly flags the unsigned installer, and it will come back once that’s fixed. Windows users can <a href="https://github.com/DiegoVolta91/coucou/tree/main/windows#build-it-yourself">build it from source</a>.</p>
-<footer>© 2026 Diego · VoltaDock is free and open source (MIT), based on Coucou by Louis Raillé · <a href="https://github.com/DiegoVolta91/coucou">GitHub</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="legal.html">Legal notice</a> · <a href="code-signing.html">Code signing policy</a></footer></div></body></html>
+
+<div data-lang="es">
+<h2>Qué hace</h2>
+<div class="features">
+<div class="card"><b>🤖 Claude Code en vivo</b>Cada sesión aparece en la isla: qué lee, qué edita y qué ejecuta, paso a paso. Cuando termina, Volt da un saltito.</div>
+<div class="card"><b>✅ Aprueba desde la isla</b>Las solicitudes de permiso llegan con <b>Denegar / Permitir</b>. Un clic y sigues con lo tuyo.</div>
+<div class="card"><b>💬 Pregúntale a Claude</b>Un chat integrado, directo desde la isla, con tu propia clave de API.</div>
+<div class="card"><b>📎 Suelta un archivo</b>Volt se convierte en caja y se lo traga. Luego haz preguntas sobre él, o envíalo por correo <span class="badge">Mac</span>.</div>
+<div class="card"><b>⏱️ Hoy</b>Bloques de enfoque de 25 minutos con cuenta regresiva, pendientes rápidos y recordatorios escritos como hablas: “en 10 min estirarme”, “mañana a las 9 dentista”.</div>
+<div class="card"><b>🔌 Integraciones</b>Stripe, n8n, GitHub, Vercel, Resend, Notion y Cal.com. Cada una tiene su propio mini Volt de color.</div>
+<div class="card"><b>🪟 Mac y Windows</b>En Mac vive en el notch. En una PC no hay notch, así que sale del borde superior de la pantalla.</div>
+<div class="card"><b>📱 Compañero para iPad <span class="badge">en camino</span></b>Ver y aprobar desde un iPad en tu misma red Wi-Fi. Todavía en desarrollo.</div>
+<div class="card"><b>🔒 Privado</b>Sin cuenta, sin estadísticas, sin rastreo. Tus claves se quedan en el Llavero de macOS o en el Administrador de credenciales de Windows.</div>
+</div>
+
+<h2>Así se ve</h2>
+<figure class="shot"><img src="media/volt-sesion.png" alt="La isla abierta: la sesión de Claude Code a la izquierda y las integraciones a la derecha"><figcaption>Una sesión de Claude Code en curso, con tus integraciones al lado.</figcaption></figure>
+<figure class="shot"><img src="media/volt-permiso.png" alt="Una solicitud de permiso de Claude Code con los botones Denegar y Permitir"><figcaption>Claude Code pide permiso: decides desde la isla.</figcaption></figure>
+<figure class="shot"><img src="media/volt-termino.png" alt="Volt celebra: la sesión de Claude Code terminó"><figcaption>La sesión terminó, con el resumen de lo que hizo.</figcaption></figure>
+<figure class="shot"><img src="media/volt-chat.png" alt="Chat con Claude desde la isla"><figcaption>Una pregunta rápida a Claude, sin cambiar de ventana.</figcaption></figure>
+<figure class="shot"><img src="media/volt-archivo.png" alt="Volt convertido en caja, esperando un archivo"><figcaption>Arrastra un archivo y Volt se convierte en caja.</figcaption></figure>
+<p class="note">Capturas reales de la versión de Windows, tomadas con datos de ejemplo. Las de Mac llegarán pronto.</p>
+
+<h2>Volt tiene cara para todo</h2>
+<div class="states">
+<figure><img src="media/estado-working.png" alt=""><figcaption>Trabajando</figcaption></figure>
+<figure><img src="media/estado-thinking.png" alt=""><figcaption>Pensando</figcaption></figure>
+<figure><img src="media/estado-approval.png" alt=""><figcaption>Necesita permiso</figcaption></figure>
+<figure><img src="media/estado-question.png" alt=""><figcaption>Tiene una pregunta</figcaption></figure>
+<figure><img src="media/estado-finished.png" alt=""><figcaption>Terminó</figcaption></figure>
+<figure><img src="media/estado-error.png" alt=""><figcaption>Algo falló</figcaption></figure>
+<figure><img src="media/estado-sleeping.png" alt=""><figcaption>Durmiendo</figcaption></figure>
+<figure><img src="media/estado-dizzy.png" alt=""><figcaption>Mareado (no le piques tanto)</figcaption></figure>
+</div>
+<p>Su barra de carga muestra cómo va Claude Code, y su rayo chispea en cuanto Claude te necesita. Volt está dibujado en código, sin imágenes: sigue tu cursor con los ojos, parpadea, respira y se enoja si le das clic de más.</p>
+
+<div class="card"><b>Privado por diseño.</b> Sin cuenta, sin estadísticas, sin rastreo. VoltaDock solo habla con los servicios que tú conectas. <a href="privacy.html">Lee la política de privacidad</a>.</div>
+
+<h2>Descarga</h2>
+<p><b>Mac:</b> macOS 15 o posterior. Descarga <code>VoltaDock.zip</code> desde <a href="https://github.com/DiegoVolta91/VoltaDock/releases/latest">Releases</a>. Esta versión aún no está notarizada por Apple: la primera vez abre <b>Ajustes del Sistema → Privacidad y seguridad</b> y haz clic en <b>Abrir de todos modos</b>.</p>
+<p><b>Windows 10/11:</b> la descarga está en pausa mientras el instalador se firma (con <a href="code-signing.html">SignPath Foundation</a>), porque Microsoft Defender marca por error el instalador sin firmar. Mientras tanto puedes <a href="https://github.com/DiegoVolta91/VoltaDock/tree/main/windows#build-it-yourself">compilarlo desde el código</a>.</p>
+</div>
+
+<div data-lang="en">
+<h2>What it does</h2>
+<div class="features">
+<div class="card"><b>🤖 Claude Code, live</b>Every session shows up on the island: what it reads, edits and runs, step by step. When it's done, Volt does a little jump.</div>
+<div class="card"><b>✅ Approve from the island</b>Permission requests arrive with <b>Deny / Allow</b>. One click and you're back to work.</div>
+<div class="card"><b>💬 Ask Claude anything</b>A built-in chat, straight from the island, with your own API key.</div>
+<div class="card"><b>📎 Drop a file</b>Volt turns into a box and swallows it. Then ask questions about it, or send it by email <span class="badge">Mac</span>.</div>
+<div class="card"><b>⏱️ Today</b>25-minute focus blocks with a countdown, quick to-dos and reminders typed in plain words: “in 10 min stretch”, “tomorrow at 9 dentist”.</div>
+<div class="card"><b>🔌 Integrations</b>Stripe, n8n, GitHub, Vercel, Resend, Notion and Cal.com. Each one gets its own little colored Volt.</div>
+<div class="card"><b>🪟 Mac and Windows</b>On a Mac it lives in the notch. A PC has no notch, so it slides out of the top edge of the screen.</div>
+<div class="card"><b>📱 iPad companion <span class="badge">coming</span></b>Watch and approve from an iPad on the same Wi-Fi network. Still in development.</div>
+<div class="card"><b>🔒 Private</b>No account, no analytics, no tracking. Your keys stay in the macOS Keychain or Windows Credential Manager.</div>
+</div>
+
+<h2>What it looks like</h2>
+<figure class="shot"><img src="media/volt-sesion.png" alt="The open island: the Claude Code session on the left, integrations on the right"><figcaption>A Claude Code session at work, with your integrations next to it.</figcaption></figure>
+<figure class="shot"><img src="media/volt-permiso.png" alt="A Claude Code permission request with Deny and Allow buttons"><figcaption>Claude Code asks for permission: you decide from the island.</figcaption></figure>
+<figure class="shot"><img src="media/volt-termino.png" alt="Volt celebrating: the Claude Code session is finished"><figcaption>The session is done, with a summary of what it did.</figcaption></figure>
+<figure class="shot"><img src="media/volt-chat.png" alt="Chatting with Claude from the island"><figcaption>A quick question to Claude, without switching windows.</figcaption></figure>
+<figure class="shot"><img src="media/volt-archivo.png" alt="Volt turned into a box, waiting for a file"><figcaption>Drag a file and Volt turns into a box.</figcaption></figure>
+<p class="note">Real screenshots of the Windows version, taken with sample data. Its interface is in Spanish for now; English is on the way. Mac screenshots are coming soon.</p>
+
+<h2>Volt has a face for everything</h2>
+<div class="states">
+<figure><img src="media/estado-working.png" alt=""><figcaption>Working</figcaption></figure>
+<figure><img src="media/estado-thinking.png" alt=""><figcaption>Thinking</figcaption></figure>
+<figure><img src="media/estado-approval.png" alt=""><figcaption>Needs permission</figcaption></figure>
+<figure><img src="media/estado-question.png" alt=""><figcaption>Has a question</figcaption></figure>
+<figure><img src="media/estado-finished.png" alt=""><figcaption>Finished</figcaption></figure>
+<figure><img src="media/estado-error.png" alt=""><figcaption>Something failed</figcaption></figure>
+<figure><img src="media/estado-sleeping.png" alt=""><figcaption>Sleeping</figcaption></figure>
+<figure><img src="media/estado-dizzy.png" alt=""><figcaption>Dizzy (stop poking it)</figcaption></figure>
+</div>
+<p>Its charge bar shows how Claude Code is doing, and its bolt sparks the moment Claude needs you. Volt is drawn in code, no images: it follows your cursor with its eyes, blinks, breathes and gets annoyed if you click it too much.</p>
+
+<div class="card"><b>Private by design.</b> No account, no analytics, no tracking. VoltaDock only talks to the services you connect. <a href="privacy.html">Read the privacy policy</a>.</div>
+
+<h2>Download</h2>
+<p><b>Mac:</b> macOS 15 or later. Grab <code>VoltaDock.zip</code> from <a href="https://github.com/DiegoVolta91/VoltaDock/releases/latest">Releases</a>. This build isn't notarized by Apple yet: the first time, open <b>System Settings → Privacy &amp; Security</b> and click <b>Open Anyway</b>.</p>
+<p><b>Windows 10/11:</b> the download is paused while the installer gets signed (by <a href="code-signing.html">SignPath Foundation</a>), because Microsoft Defender wrongly flags the unsigned installer. Until then you can <a href="https://github.com/DiegoVolta91/VoltaDock/tree/main/windows#build-it-yourself">build it from source</a>.</p>
+</div>
+<footer>© 2026 Diego · <span data-lang="es">VoltaDock es libre y de código abierto (MIT). Empezó como fork de Coucou, de Louis Raillé.</span><span data-lang="en">VoltaDock is free and open source (MIT). It started as a fork of Coucou by Louis Raillé.</span> · <a href="https://github.com/DiegoVolta91/VoltaDock">GitHub</a> · <a href="privacy.html"><span data-lang="es">Privacidad</span><span data-lang="en">Privacy</span></a> · <a href="terms.html"><span data-lang="es">Términos</span><span data-lang="en">Terms</span></a> · <a href="legal.html"><span data-lang="es">Aviso legal</span><span data-lang="en">Legal notice</span></a> · <a href="code-signing.html"><span data-lang="es">Firma de código</span><span data-lang="en">Code signing policy</span></a></footer></div>
+</body></html>
