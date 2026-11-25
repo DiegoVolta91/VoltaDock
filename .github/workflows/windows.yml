@@ -1,13 +1,31 @@
 name: Windows
 
 # Builds the Windows app and publishes the installer.
-# Triggered by tags like `windows-v0.1.0`; the macOS workflows are untouched.
+# Tags like `windows-v0.1.0` build and (when PUBLISH is on) release. Pushes and
+# pull requests on main that touch the Windows app only build, so a break shows
+# up on the commit that caused it rather than at release time. Every release
+# step below is guarded by a `windows-v*` tag check.
 
 on:
   push:
+    branches: [main]
     tags:
       - 'windows-v*'
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
   workflow_dispatch:
+
+# A newer push to the same branch or PR makes the older build pointless.
+# Tag builds are never cancelled.
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: write
@@ -193,11 +211,15 @@ jobs:
         shell: pwsh
         run: throw "PUBLISH is on but SignPath is not configured, so this installer is unsigned."
 
+      # Builds from main and pull requests keep the installer as a downloadable
+      # artifact (no release), so a branch can be tried on a real Windows
+      # machine. Tag builds only upload it when publishing is on.
       - uses: actions/upload-artifact@v4
-        if: env.PUBLISH == 'true'
+        if: env.PUBLISH == 'true' || !startsWith(github.ref, 'refs/tags/')
         with:
           name: Coucou-Windows-setup
           path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version || steps.version.outputs.version }}-setup.exe
+          retention-days: 14
 
       - name: Publish the release
         if: env.PUBLISH == 'true' && startsWith(github.ref, 'refs/tags/windows-v')

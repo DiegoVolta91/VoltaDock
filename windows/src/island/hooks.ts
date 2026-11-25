@@ -8,6 +8,7 @@ import { refreshUsage } from "../core/panels";
 import { Sound } from "../core/sound";
 import { State } from "../core/state";
 import type { Island } from "./island";
+import { tr } from "../i18n";
 
 const CLAUDE_ID = "integration_claude";
 
@@ -72,26 +73,9 @@ function lastPathComponent(p: string): string {
   return idx >= 0 ? cleaned.slice(idx + 1) : cleaned;
 }
 
-/** frenchStep() — same labels as the macOS app. */
-const TOOL_LABELS: Record<string, string> = {
-  Bash: "Ejecuta",
-  Read: "Lee",
-  Write: "Escribe",
-  Edit: "Edita",
-  Glob: "Busca",
-  Grep: "Busca",
-  WebSearch: "Búsqueda web",
-  WebFetch: "Descarga",
-  TodoWrite: "Tareas",
-  Task: "Agente",
-  LS: "Lista",
-  MultiEdit: "Edita",
-  NotebookEdit: "Notebook",
-  PowerShell: "Ejecuta",
-};
-
+/** frenchStep() — the tool verbs live in the locale files (`steps.tools`). */
 function stepLabel(tool: string, input: Record<string, unknown>): string {
-  const label = TOOL_LABELS[tool] ?? tool;
+  const label = tr.steps.tools[tool] ?? tool;
   const str = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : null);
   const cmd = str("command");
   if (cmd) return `${label} · ${cmd.slice(0, 40)}`;
@@ -197,15 +181,15 @@ function trackSession(
       break;
     case "PermissionRequest":
       patch.status = "waiting";
-      patch.note = "Pide permiso";
+      patch.note = "permission";
       break;
     case "Notification":
       if (isLimitText(payload.message)) {
         patch.status = "limit";
-        patch.note = "Límite alcanzado";
+        patch.note = "limit";
       } else if (isQuestion(payload)) {
         patch.status = "waiting";
-        patch.note = "Espera tu respuesta";
+        patch.note = "answer";
       } else {
         // Not a reason to change what the conversation is doing.
         return;
@@ -220,10 +204,10 @@ function trackSession(
     case "StopFailure":
       if (isRateLimit(payload)) {
         patch.status = "limit";
-        patch.note = "Límite alcanzado";
+        patch.note = "limit";
       } else {
         patch.status = "finished";
-        patch.note = "Se detuvo por un error";
+        patch.note = "error";
       }
       break;
     case "SessionEnd":
@@ -339,7 +323,7 @@ function handleHook(island: Island, payload: HookPayload) {
 
     case "PostToolUseFailure":
       State.updateTask(CLAUDE_ID, "working");
-      State.appendStep(CLAUDE_ID, "⚠ falló");
+      State.appendStep(CLAUDE_ID, tr.steps.failed);
       break;
 
     case "Notification": {
@@ -388,7 +372,7 @@ function handleHook(island: Island, payload: HookPayload) {
       if (limited) {
         State.appendStep(
           CLAUDE_ID,
-          firstLine(payload.error_details ?? payload.message, 100) || "Límite de uso alcanzado",
+          firstLine(payload.error_details ?? payload.message, 100) || tr.steps.usageLimit,
         );
       }
       Sound.play(limited ? "rate" : "error");
@@ -403,14 +387,14 @@ function handleHook(island: Island, payload: HookPayload) {
       break;
 
     case "SubagentStart":
-      State.appendStep(CLAUDE_ID, "+ subagente");
+      State.appendStep(CLAUDE_ID, tr.steps.subagent);
       break;
 
     case "SubagentStop":
       // It arrives right after Stop; appending would bury the session summary
       // that the finished card shows as its title.
       if (State.tasks.find((x) => x.id === CLAUDE_ID)?.state !== "finished") {
-        State.appendStep(CLAUDE_ID, "• subagente listo");
+        State.appendStep(CLAUDE_ID, tr.steps.subagentDone);
       }
       break;
 

@@ -8,6 +8,7 @@ import { State } from "../core/state";
 import { Bridge } from "../core/bridge";
 import { Sound } from "../core/sound";
 import { washRGBA } from "../core/layout";
+import { tr } from "../i18n";
 import {
   Today, FOCUS_MS, clock, dueLabel, fraction, isPaused, remaining, type TodayItem,
 } from "../core/today";
@@ -58,7 +59,7 @@ function chip(label: string | null, icon: string, accent: string | null, onClick
 export function buildTodayCard(): TodayCard {
   // Main face
   const summary = h("button", { class: "today-summary", onclick: () => toggleList() });
-  const head = h("div", { class: "int-head" }, dot(TODAY_COLOR, 7), h("b", { text: "Hoy" }), summary);
+  const head = h("div", { class: "int-head" }, dot(TODAY_COLOR, 7), h("b", { text: tr.today.name }), summary);
 
   const clockEl = h("span", { class: "today-clock" });
   const caption = h("span", { class: "today-caption" });
@@ -72,16 +73,16 @@ export function buildTodayCard(): TodayCard {
     type: "text",
     spellcheck: "false",
     autocomplete: "off",
-    placeholder: "Tarea, o «en 10 min estirar»",
+    placeholder: tr.today.addPlaceholder,
   }) as HTMLInputElement;
   const add = h("label", { class: "today-add" }, addIcon, flashEl, input);
 
   const face = h("div", { class: "int-card today-card" }, head, focusRow, add);
 
   // List
-  const clearDone = h("button", { class: "link-btn", style: `color:${TODAY_COLOR}d9`, text: "Borrar hechas", onclick: () => Today.clearDone() });
-  const back = h("button", { class: "icon-btn", title: "Volver", onclick: () => toggleList() }, svg(ICONS.chevronLeft, 9, { stroke: 2.4 }));
-  const listHead = h("div", { class: "today-list-head" }, back, h("b", { text: "Hoy" }), h("div", { class: "grow" }), clearDone);
+  const clearDone = h("button", { class: "link-btn", style: `color:${TODAY_COLOR}d9`, text: tr.today.clearDone, onclick: () => Today.clearDone() });
+  const back = h("button", { class: "icon-btn", title: tr.today.back, onclick: () => toggleList() }, svg(ICONS.chevronLeft, 9, { stroke: 2.4 }));
+  const listHead = h("div", { class: "today-list-head" }, back, h("b", { text: tr.today.name }), h("div", { class: "grow" }), clearDone);
   const rows = h("div", { class: "today-rows" });
   const list = h("div", { class: "today-list" }, listHead, rows);
 
@@ -111,7 +112,7 @@ export function buildTodayCard(): TodayCard {
     if (!item) return;
     input.value = "";
     add.classList.remove("typing");
-    flash(`Añadido${item.dueAt != null ? ` · ${dueLabel(item.dueAt)}` : ""}`);
+    flash(`${tr.today.added}${item.dueAt != null ? ` · ${dueLabel(item.dueAt)}` : ""}`);
     Sound.play("pop");
   });
   // While typing, the card must not auto-close under your fingers.
@@ -146,9 +147,9 @@ export function buildTodayCard(): TodayCard {
     const open = Today.openItems.length;
     const next = Today.nextReminder;
     const parts: string[] = [];
-    if (open > 0) parts.push(`${open} pendiente${open === 1 ? "" : "s"}`);
-    if (next?.dueAt != null) parts.push(`próximo ${dueLabel(next.dueAt).toLowerCase()}`);
-    summary.textContent = parts.length ? parts.join(" · ") : "Nada previsto";
+    if (open > 0) parts.push(tr.today.pending(open));
+    if (next?.dueAt != null) parts.push(tr.today.next(dueLabel(next.dueAt).toLowerCase()));
+    summary.textContent = parts.length ? parts.join(" · ") : tr.today.nothingPlanned;
 
     const f = Today.focus;
     const paused = isPaused(f);
@@ -156,8 +157,8 @@ export function buildTodayCard(): TodayCard {
     const n = Today.blocksToday;
     caption.textContent =
       f.phase === "idle"
-        ? n === 0 ? "Enfoque" : `${n} bloque${n === 1 ? "" : "s"} hoy`
-        : paused ? "En pausa" : f.phase === "focus" ? "Enfoque" : "Descanso";
+        ? n === 0 ? tr.today.focus : tr.today.blocksToday(n)
+        : paused ? tr.today.paused : f.phase === "focus" ? tr.today.focus : tr.today.rest;
     caption.style.color = f.phase === "focus" ? FOCUS_COLOR : f.phase === "rest" ? REST_COLOR : "var(--dim-3)";
 
     // Buttons are rebuilt only when they change, or a click between mouse-down
@@ -167,11 +168,11 @@ export function buildTodayCard(): TodayCard {
       chipsKey = key;
       clear(chips);
       if (f.phase === "idle") {
-        chips.append(chip("Empezar", ICONS.play, FOCUS_COLOR, () => Today.startFocus()));
+        chips.append(chip(tr.today.start, ICONS.play, FOCUS_COLOR, () => Today.startFocus()));
       } else {
-        if (paused) chips.append(chip("Seguir", ICONS.play, FOCUS_COLOR, () => Today.resume()));
-        else if (f.phase === "focus") chips.append(chip("Pausa", ICONS.pause, null, () => Today.pause()));
-        else chips.append(chip("Saltar", ICONS.forward, null, () => Today.stopFocus()));
+        if (paused) chips.append(chip(tr.today.resume, ICONS.play, FOCUS_COLOR, () => Today.resume()));
+        else if (f.phase === "focus") chips.append(chip(tr.today.pause, ICONS.pause, null, () => Today.pause()));
+        else chips.append(chip(tr.today.skip, ICONS.forward, null, () => Today.stopFocus()));
         if (f.phase === "focus" || paused) chips.append(chip(null, ICONS.stop, null, () => Today.stopFocus()));
       }
     }
@@ -185,7 +186,7 @@ export function buildTodayCard(): TodayCard {
     rowsKey = key;
     clear(rows);
     if (all.length === 0) {
-      rows.append(h("div", { class: "today-empty", text: "Nada todavía. Escribe una tarea, o «a las 9 llamar a Ana»." }));
+      rows.append(h("div", { class: "today-empty", text: tr.today.empty }));
       return;
     }
     for (const item of all) rows.append(todayRow(item));
@@ -211,7 +212,7 @@ function todayRow(item: TodayItem): HTMLElement {
     if (item.firedAt != null) due.style.color = FOCUS_COLOR;
     row.append(due);
   }
-  row.append(h("button", { class: "today-del", title: "Quitar", onclick: () => Today.remove(item.id) }, svg(ICONS.xmark, 8)));
+  row.append(h("button", { class: "today-del", title: tr.today.remove, onclick: () => Today.remove(item.id) }, svg(ICONS.xmark, 8)));
   return row;
 }
 
@@ -238,21 +239,21 @@ export function buildTodayAlert(): { el: HTMLElement; sync(): void } {
       clear(who);
       let label = "";
       if (a.kind === "reminder") {
-        label = a.late ? `te lo perdiste mientras no estabas · ${dueLabel(a.dueAt)}` : `recordatorio · ${dueLabel(a.dueAt)}`;
+        label = a.late ? tr.today.missed(dueLabel(a.dueAt)) : tr.today.reminder(dueLabel(a.dueAt));
       } else if (a.kind === "focusDone") {
-        label = `bloque de enfoque terminado · ${a.blocksToday} hoy`;
+        label = tr.today.focusDone(a.blocksToday);
       } else {
-        label = "se acabó el descanso";
+        label = tr.today.restDone;
       }
-      who.append(dot(TODAY_COLOR, 8), h("span", { class: "n", text: "Hoy" }), h("span", { text: label }));
+      who.append(dot(TODAY_COLOR, 8), h("span", { class: "n", text: tr.today.name }), h("span", { text: label }));
       title.textContent =
         a.kind === "reminder" ? a.text
-        : a.kind === "focusDone" ? "Buen trabajo. Toca un descanso corto."
-        : "¿Otro bloque de enfoque?";
+        : a.kind === "focusDone" ? tr.today.focusDoneTitle
+        : tr.today.restDoneTitle;
       (primary.firstChild as HTMLElement).textContent =
-        a.kind === "focusDone" ? "Descansar 5" : a.kind === "restDone" ? "Enfoque 25 min" : "Hecho";
+        a.kind === "focusDone" ? tr.today.restFive : a.kind === "restDone" ? tr.today.focus25 : tr.today.done;
       (secondary.firstChild as HTMLElement).textContent =
-        a.kind === "focusDone" ? "Luego" : a.kind === "restDone" ? "Ahora no" : "Posponer 10 min";
+        a.kind === "focusDone" ? tr.today.later : a.kind === "restDone" ? tr.today.notNow : tr.today.snooze;
     },
   };
 }

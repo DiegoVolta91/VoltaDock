@@ -9,13 +9,14 @@ import { ICONS } from "./icons";
 import { State, type AgentTask } from "../core/state";
 import { Bridge } from "../core/bridge";
 import { continueSession } from "../core/panels";
+import { tr } from "../i18n";
 
-/** Same shape as the Swift `timeAgo` computed properties. */
+/** Same shape as the Swift `timeAgo` computed properties: "3m", "2h", or `tr.common.now`. */
 export function timeAgo(value: unknown): string {
   const date = typeof value === "number" ? new Date(value) : new Date(String(value));
   const diff = (Date.now() - date.getTime()) / 1000;
   if (!Number.isFinite(diff)) return "";
-  if (diff < 60) return "ahora";
+  if (diff < 60) return tr.common.now;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   return `${Math.floor(diff / 86400)}d`;
@@ -60,12 +61,12 @@ export function sessionsCard(): HTMLElement {
     const row = listRow(
       SESSION_COLORS[s.status],
       i === 0,
-      h("span", { class: "int-name", text: s.name || "Sesión" }),
-      h("span", { class: s.status === "waiting" || s.status === "limit" ? "int-sub waiting" : "int-sub", text: s.note ?? s.detail }),
+      h("span", { class: "int-name", text: s.name || tr.integrations.session }),
+      h("span", { class: s.status === "waiting" || s.status === "limit" ? "int-sub waiting" : "int-sub", text: (s.note ? tr.sessionNotes[s.note] : null) ?? s.detail }),
       h("span", { class: "int-ago", text: timeAgo(s.lastSeen) }),
     );
     row.classList.add("sess-row");
-    row.title = s.status === "limit" ? "Continuar donde se quedó" : "Abrir conversación";
+    row.title = s.status === "limit" ? tr.integrations.continueWhereLeft : tr.common.openConversation;
     row.addEventListener("click", () => {
       // A conversation stopped by the usage limit is picked up again, not just opened.
       if (s.status === "limit") {
@@ -78,7 +79,7 @@ export function sessionsCard(): HTMLElement {
     });
     rows.append(row);
   });
-  return h("div", { class: "int-card" }, header("#F5F6F8", "VS Code", "Conversaciones"), rows);
+  return h("div", { class: "int-card" }, header("#F5F6F8", "VS Code", tr.integrations.conversations), rows);
 }
 
 // ── Not configured / idle ─────────────────────────────────────────────────────
@@ -98,8 +99,8 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
   const error = info?.error ?? null;
   // The Claude Code pill is about hooks, not a key — the macOS wording would be
   // misleading here.
-  const missing = task.id === "integration_claude" ? "Hooks no instalados" : "Clave sin configurar";
-  const label = error ?? (configured ? "Conectado · cargando…" : missing);
+  const missing = task.id === "integration_claude" ? tr.integrations.hooksMissing : tr.integrations.keyMissing;
+  const label = error ?? (configured ? tr.integrations.connectedLoading : missing);
   const statusColor = error || !configured ? "#F4505E" : "#22C55E";
 
   const actions = h("div", { class: "int-actions" });
@@ -108,7 +109,7 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
       h("button", {
         class: "link-btn",
         style: `color:${task.color}b3`,
-        text: "Abrir Visual Studio Code",
+        text: tr.integrations.openVSCode,
         onclick: () => void Bridge.openInVSCode(task.sessionCwd ?? null),
       }),
     );
@@ -117,7 +118,7 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
       h("button", {
         class: "link-btn",
         style: `color:${task.color}d9`,
-        text: "Abrir n8n",
+        text: tr.integrations.openN8n,
         onclick: () => void Bridge.openN8n(),
       }),
     );
@@ -126,7 +127,7 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
       h("button", {
         class: "link-btn",
         style: `color:${task.color}d9`,
-        text: `Abrir ${task.name}`,
+        text: tr.integrations.open(task.name),
         onclick: () => void Bridge.openUrl(OPEN_URLS[task.id]),
       }),
     );
@@ -136,20 +137,20 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
       h("button", {
         class: "link-btn",
         style: `color:${task.color}d9`,
-        text: "Actualizar",
+        text: tr.integrations.refresh,
         onclick: () => void Bridge.refreshIntegration(task.id),
       }),
     );
   } else {
     actions.append(
-      h("button", { class: "link-btn", style: "color:#8e939c", text: "Ajustes…", onclick: openSettings }),
+      h("button", { class: "link-btn", style: "color:#8e939c", text: tr.common.settingsEllipsis, onclick: openSettings }),
     );
   }
 
   return h(
     "div",
     { class: "int-card" },
-    header(task.color, task.id === "integration_claude" ? "VS Code" : task.name, "Integración"),
+    header(task.color, task.id === "integration_claude" ? "VS Code" : task.name, tr.integrations.integration),
     h("div", { class: "int-status" }, dot(statusColor, 5), h("span", { text: label })),
     actions,
   );
@@ -167,7 +168,7 @@ function vercelCard(onDetail: () => void): HTMLElement {
     if (i === 0) {
       const more = h(
         "button",
-        { class: "int-more", title: "Detalles", onclick: onDetail },
+        { class: "int-more", title: tr.integrations.details, onclick: onDetail },
         svg(ICONS.ellipsis, 8),
       );
       rows.append(listRow(accent, true, name, ago, more));
@@ -175,19 +176,19 @@ function vercelCard(onDetail: () => void): HTMLElement {
       rows.append(listRow(accent, false, name, ago));
     }
   });
-  return h("div", { class: "int-card" }, header("#7C5CFF", "Vercel", "Despliegues"), rows);
+  return h("div", { class: "int-card" }, header("#7C5CFF", "Vercel", tr.integrations.deployments), rows);
 }
 
 function vercelDetail(onBack: () => void): HTMLElement {
   const d = arr("integration_vercel", "deployments")[0] ?? {};
   const success = d.state === "READY";
   const accent = success ? "#22C55E" : "#F4505E";
-  const status = success ? "Listo" : d.state === "CANCELED" ? "Cancelado" : "Error";
+  const status = success ? tr.integrations.ready : d.state === "CANCELED" ? tr.integrations.canceled : tr.integrations.error;
   const body = h("div", { class: "int-detail-body" });
   if (d.commitMessage) body.append(h("div", { class: "int-commit", text: String(d.commitMessage) }));
   const meta = h("div", { class: "int-meta" });
   if (d.branch) meta.append(h("span", { text: String(d.branch) }));
-  meta.append(h("span", { text: (() => { const t = timeAgo(d.createdAt); return t === "ahora" ? t : `hace ${t}`; })() }));
+  meta.append(h("span", { text: (() => { const t = timeAgo(d.createdAt); return t === tr.common.now ? t : tr.common.ago(t); })() }));
   body.append(meta);
   if (d.url) {
     body.append(
@@ -206,7 +207,7 @@ function vercelDetail(onBack: () => void): HTMLElement {
       { class: "int-detail-head" },
       h("button", { class: "int-back", onclick: onBack }, svg(ICONS.chevronLeft, 10, { stroke: 2.4 })),
       dot(accent, 6),
-      h("b", { text: String(d.projectName ?? "Despliegue") }),
+      h("b", { text: String(d.projectName ?? tr.integrations.deployment) }),
       h("span", { class: "int-badge", style: `color:${accent};background:${accent}24`, text: status }),
     ),
     body,
@@ -258,12 +259,12 @@ function githubCard(): HTMLElement {
   return h(
     "div",
     { class: "int-card" },
-    header("#F4505E", "GitHub", "Resumen"),
+    header("#F4505E", "GitHub", tr.integrations.overview),
     h(
       "div",
       { class: "int-stats" },
-      statRow(ICONS.star, "#F5A524", "Estrellas totales", fmt(stars)),
-      statRow(ICONS.stack, "#6B7079", "Repositorios", String(repos)),
+      statRow(ICONS.star, "#F5A524", tr.integrations.totalStars, fmt(stars)),
+      statRow(ICONS.stack, "#6B7079", tr.integrations.repositories, String(repos)),
     ),
   );
 }
@@ -283,7 +284,7 @@ function stripeCard(): HTMLElement {
         "div",
         { class: "int-row" },
         dot(accent, 5),
-        h("span", { class: "int-name", text: String(p.description ?? "Pago") }),
+        h("span", { class: "int-name", text: String(p.description ?? tr.integrations.payment) }),
         h("span", {
           class: "int-amount",
           style: "color:#22c55e",
@@ -296,7 +297,7 @@ function stripeCard(): HTMLElement {
   return h(
     "div",
     { class: "int-card" },
-    header("#0570DE", "Stripe", "Pagos"),
+    header("#0570DE", "Stripe", tr.integrations.payments),
     h("div", { class: "int-balance" }, h("span", { text: balance }), h("i", { text: currency })),
     rows,
   );
@@ -319,12 +320,12 @@ function notionCard(): HTMLElement {
         p.emoji
           ? h("span", { class: "int-emoji", text: String(p.emoji) })
           : h("i", { class: "int-emoji" }, svg(ICONS.doc, 9)),
-        h("span", { class: "int-name", text: String(p.title ?? "Sin título") }),
+        h("span", { class: "int-name", text: String(p.title ?? tr.integrations.untitled) }),
         h("span", { class: "int-ago", text: timeAgo(p.lastEditedAt) }),
       ),
     );
   }
-  return h("div", { class: "int-card" }, header("#E8E8E8", "Notion", "Recientes"), rows);
+  return h("div", { class: "int-card" }, header("#E8E8E8", "Notion", tr.integrations.recent), rows);
 }
 
 // ── Cal.com ───────────────────────────────────────────────────────────────────
@@ -335,23 +336,23 @@ function calcomCard(): HTMLElement {
     .sort((a, b) => new Date(String(a.start)).getTime() - new Date(String(b.start)).getTime());
   const rows = h("div", { class: "int-rows tight" });
   if (bookings.length === 0) {
-    rows.append(h("div", { class: "int-empty", text: "Sin llamadas programadas" }));
+    rows.append(h("div", { class: "int-empty", text: tr.integrations.noCalls }));
   }
   for (const b of bookings.slice(0, 3)) {
     const when = new Date(String(b.start));
-    const day = when.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" });
-    const time = when.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    const day = when.toLocaleDateString(tr.tag, { day: "2-digit", month: "2-digit" });
+    const time = when.toLocaleTimeString(tr.tag, { hour: "2-digit", minute: "2-digit" });
     rows.append(
       h(
         "div",
         { class: "int-row" },
         dot("#C9956A", 4),
         h("span", { class: "int-time", text: `${day} ${time}` }),
-        h("span", { class: "int-name", text: String(b.title ?? "Reunión") }),
+        h("span", { class: "int-name", text: String(b.title ?? tr.integrations.meeting) }),
       ),
     );
   }
-  return h("div", { class: "int-card" }, header("#C9956A", "Cal.com", "Agenda"), rows);
+  return h("div", { class: "int-card" }, header("#C9956A", "Cal.com", tr.integrations.schedule), rows);
 }
 
 // ── n8n ───────────────────────────────────────────────────────────────────────
@@ -399,14 +400,14 @@ function n8nDetail(task: AgentTask, onBack: () => void): HTMLElement {
       h("span", {
         class: "int-badge",
         style: `color:${accent};background:${accent}24`,
-        text: success ? "Éxito" : "Falló",
+        text: success ? tr.integrations.success : tr.integrations.failed,
       }),
     ),
     detail
       ? h("pre", { class: "int-detail-text", text: detail })
       : h("div", {
           class: "int-status",
-          text: success ? "Completado con éxito." : "Sin detalles del error.",
+          text: success ? tr.integrations.completed : tr.integrations.noErrorDetail,
         }),
   );
 }
