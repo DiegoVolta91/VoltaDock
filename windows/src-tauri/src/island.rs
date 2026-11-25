@@ -154,26 +154,48 @@ fn cursor_physical() -> Option<(f64, f64)> {
 /// that feeds Tauri's drag events.
 ///
 /// Cheap and idempotent, so it is simply re-run whenever a drag might be starting.
-pub fn unblock_webview_drops(app: &AppHandle) {
+/// Besides the press seen by the cursor poll, it also runs whenever the island
+/// collapses and shortly after launch: the poll is parked while the island is
+/// hidden, and a file dragged from Explorer onto the wake strip starts its drag
+/// before the poll could ever see the press. Returns how many targets it released.
+pub fn unblock_webview_drops(app: &AppHandle) -> u32 {
+    let mut released: u32 = 0;
     for label in [WINDOW_LABEL, "settings"] {
         let Some(win) = app.get_webview_window(label) else { continue };
         let Some(hwnd) = hwnd_of(&win) else { continue };
         unsafe {
-            let _ = EnumChildWindows(Some(hwnd), Some(revoke_render_widget), LPARAM(0));
+            let _ = EnumChildWindows(
+                Some(hwnd),
+                Some(revoke_render_widget),
+                LPARAM(&mut released as *mut u32 as isize),
+            );
         }
     }
+    released
 }
 
-unsafe extern "system" fn revoke_render_widget(hwnd: HWND, _: LPARAM) -> BOOL {
+unsafe extern "system" fn revoke_render_widget(hwnd: HWND, count: LPARAM) -> BOOL {
     let mut name = [0u16; 64];
     let len = unsafe { GetClassNameW(hwnd, &mut name) };
     if len > 0 {
         let class = String::from_utf16_lossy(&name[..len as usize]);
-        if class == "Chrome_RenderWidgetHostHWND" {
-            let _ = unsafe { RevokeDragDrop(hwnd) };
+        if class == "Chrome_RenderWidgetHostHWND" && unsafe { RevokeDragDrop(hwnd) }.is_ok() {
+            unsafe { *(count.0 as *mut u32) += 1 };
         }
     }
     true.into()
+}
+
+/// Runs `unblock_webview_drops` on the main thread and logs when it actually
+/// had something to release, so a drop that never arrives can be traced.
+pub fn unblock_webview_drops_later(app: &AppHandle) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        let n = unblock_webview_drops(&handle);
+        if n > 0 {
+            crate::log::line(format!("drop target: released {n} WebView2 target(s)"));
+        }
+    });
 }
 
 /// True while the left mouse button is held — the only signal we get that a
@@ -431,7 +453,9 @@ pub fn spawn_cursor_poll(app: AppHandle, gate: Arc<PollGate>) {
                 let down = left_button_down();
                 if down && !was_down {
                     let handle = app.clone();
-                    let _ = app.run_on_main_thread(move || unblock_webview_drops(&handle));
+                    let _ = app.run_on_main_thread(move || {
+                        unblock_webview_drops(&handle);
+                    });
                 }
                 was_down = down;
 

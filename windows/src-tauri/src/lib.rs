@@ -121,6 +121,9 @@ fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
     island::set_ignore_cursor(&app, false);
     shared.gate.forget_ignore_state();
     shared.gate.set_active(!collapsed);
+    // The poll that re-arms file drops is parked while collapsed, and a drag
+    // from Explorer onto the wake strip starts before it could notice.
+    island::unblock_webview_drops_later(&app);
 }
 
 /// The front end pushes the island shape; Rust decides click-through from it.
@@ -652,6 +655,16 @@ pub fn run() {
             gate.collapsed.store(false, Ordering::Relaxed);
             gate.set_active(true);
             island::spawn_cursor_poll(handle.clone(), gate.clone());
+            // WebView2 registers its own drop target a little after launch.
+            {
+                let handle = handle.clone();
+                std::thread::spawn(move || {
+                    for secs in [2, 4, 8] {
+                        std::thread::sleep(std::time::Duration::from_secs(secs));
+                        island::unblock_webview_drops_later(&handle);
+                    }
+                });
+            }
 
             log::line(format!("--- VoltaDock {} started ---", env!("CARGO_PKG_VERSION")));
             hooks::ensure_hook_exe(&handle);
