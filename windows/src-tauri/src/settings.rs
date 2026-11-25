@@ -28,16 +28,23 @@ pub struct Settings {
     #[serde(default = "default_language")]
     pub language: String,
     /// Where the island sits: "top" = top centre of the display picked by
-    /// `screen` (the default, like the notch), "free" = wherever the user dragged it.
+    /// `screen` (the default, like the notch), "free" = docked to the edge the
+    /// user dropped it on (`dock_edge`, `dock_pos`).
     #[serde(default = "default_dock")]
     pub dock: String,
-    /// Free dock: the island's anchor as fractions (0..1) of the display's work
-    /// area. The anchor is the middle of the edge the island grows from — its top
-    /// edge in the upper half of the display, its bottom edge in the lower half.
-    /// Fractions survive a resolution or scale change.
+    /// Free dock: the display edge the island is attached to — "top", "bottom",
+    /// "left" or "right" — and the island opens away from it.
     #[serde(default)]
+    pub dock_edge: String,
+    /// Free dock: where along that edge, as a fraction (0..1) of the display's
+    /// work area. Fractions survive a resolution or scale change.
+    #[serde(default = "default_dock_pos")]
+    pub dock_pos: f64,
+    /// Read only to migrate a settings.json from the first free-dock build
+    /// (anchor x/y, no edge); never written back.
+    #[serde(default, skip_serializing)]
     pub dock_x: f64,
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub dock_y: f64,
     /// Free dock: name Windows gives the display it was dropped on.
     #[serde(default)]
@@ -57,6 +64,10 @@ fn default_true() -> bool {
 
 fn default_dock() -> String {
     "top".into()
+}
+
+fn default_dock_pos() -> f64 {
+    0.5
 }
 
 fn default_language() -> String {
@@ -89,7 +100,9 @@ impl Default for Settings {
             docpack_enabled: true,
             language: default_language(),
             dock: default_dock(),
-            dock_x: 0.5,
+            dock_edge: "top".into(),
+            dock_pos: 0.5,
+            dock_x: 0.0,
             dock_y: 0.0,
             dock_monitor: String::new(),
         }
@@ -121,10 +134,21 @@ fn settings_path() -> PathBuf {
 }
 
 pub fn load() -> Settings {
-    match std::fs::read(settings_path()) {
+    let mut s: Settings = match std::fs::read(settings_path()) {
         Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_default(),
         Err(_) => Settings::default(),
+    };
+    // First free-dock build stored an anchor (x, y) instead of an edge.
+    if s.dock_edge.is_empty() {
+        if s.dock == "free" {
+            s.dock_edge = if s.dock_y > 0.5 { "bottom" } else { "top" }.into();
+            s.dock_pos = s.dock_x.clamp(0.0, 1.0);
+        } else {
+            s.dock_edge = "top".into();
+            s.dock_pos = 0.5;
+        }
     }
+    s
 }
 
 pub fn save(settings: &Settings) -> std::io::Result<()> {

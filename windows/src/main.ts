@@ -24,6 +24,13 @@ async function main() {
   }
   // The island was built in the system language; redraw it if the setting says otherwise.
   if (setLanguage(State.settings.language)) island.relocalize();
+  // `npm run dev` only: ?dock=left|right|bottom|top previews a docked island.
+  if (!IS_TAURI) {
+    const edge = new URLSearchParams(location.search).get("dock");
+    if (edge === "left" || edge === "right" || edge === "bottom" || edge === "top") {
+      State.settings = { ...State.settings, dock: "free", dockEdge: edge };
+    }
+  }
   island.applySettings();
   State.loadIntegrationTasks();
 

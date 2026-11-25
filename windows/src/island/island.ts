@@ -10,7 +10,7 @@ import {
   type IslandMode, type IslandViewName,
 } from "../core/layout";
 import { Sound } from "../core/sound";
-import { State } from "../core/state";
+import { State, type DockEdge } from "../core/state";
 import { BotEngine, hexToRGB } from "../mochi/engine";
 import { Greeting } from "../mochi/greeting";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../mochi/minibots";
@@ -95,10 +95,9 @@ export class Island {
   private pushedRect = { x: -1, y: -1, w: -1, h: -1 };
   private homeCollapseAt: number | null = null;
 
-  // Where the island sits (Settings.dock*). Free + lower half → it grows upwards
-  // from its bottom edge; anywhere but stuck to a top edge → all corners round.
-  private dockUp = false;
-  private dockAttached = true;
+  // The display edge the island is attached to (Settings.dockEdge): flat against
+  // it, rounded on the other sides, opening away from it.
+  private dockEdge: DockEdge = "top";
   /** A compact-island click held back until we know the press was not a move. */
   private pendingClick = false;
   private pressAt = { x: 0, y: 0 };
@@ -564,8 +563,19 @@ export class Island {
     const r = this.radius.value;
     this.islandEl.style.width = `${w}px`;
     this.islandEl.style.height = `${hh}px`;
-    this.islandEl.style.borderRadius = this.dockAttached ? `0 0 ${r}px ${r}px` : `${r}px`;
-    this.islandEl.style.transform = `translateX(-50%)`;
+    // Corners: square on the edge side, round elsewhere (top-left, top-right,
+    // bottom-right, bottom-left).
+    const radii: Record<DockEdge, string> = {
+      top: `0 0 ${r}px ${r}px`,
+      bottom: `${r}px ${r}px 0 0`,
+      left: `0 ${r}px ${r}px 0`,
+      right: `${r}px 0 0 ${r}px`,
+    };
+    this.islandEl.style.borderRadius = radii[this.dockEdge];
+    const at = this.islandRect();
+    this.islandEl.style.left = `${at.x}px`;
+    this.islandEl.style.top = `${at.y}px`;
+    this.islandEl.style.transform = "none";
     // These follow the island as it resizes, so they belong here rather than in
     // the state-driven DOM sync.
     this.miniGrid.style.left = `${w - 40 - 14.5}px`;
@@ -588,7 +598,16 @@ export class Island {
   private islandRect(): { x: number; y: number; w: number; h: number } {
     const w = this.width.value;
     const hh = this.height.value;
-    return { x: (PANEL_W - w) / 2, y: this.dockUp ? PANEL_H - hh : 0, w, h: hh };
+    switch (this.dockEdge) {
+      case "bottom":
+        return { x: (PANEL_W - w) / 2, y: PANEL_H - hh, w, h: hh };
+      case "left":
+        return { x: 0, y: (PANEL_H - hh) / 2, w, h: hh };
+      case "right":
+        return { x: PANEL_W - w, y: (PANEL_H - hh) / 2, w, h: hh };
+      default:
+        return { x: (PANEL_W - w) / 2, y: 0, w, h: hh };
+    }
   }
 
   // ── Window collapse (hidden → tiny wake strip, zero polling) ────────────────
@@ -605,11 +624,13 @@ export class Island {
         this.collapseTimer = null;
         if (State.mode !== "hidden") return;
         this.collapsed = true;
+        this.root.classList.add("win-collapsed");
         void Bridge.setCollapsed(true);
       }, 420);
     } else if (this.collapsed) {
       // Grow the window back before the island animates open.
       this.collapsed = false;
+      this.root.classList.remove("win-collapsed");
       void Bridge.setCollapsed(false);
     }
   }
@@ -1036,10 +1057,11 @@ export class Island {
   applySettings() {
     const s = State.settings;
     const free = s.dock === "free";
-    this.dockUp = free && s.dockY > 0.5;
-    this.dockAttached = !free || s.dockY <= 0;
+    this.dockEdge = free ? s.dockEdge : "top";
     this.root.classList.toggle("dock-free", free);
-    this.root.classList.toggle("dock-up", this.dockUp);
+    for (const e of ["top", "bottom", "left", "right"] as const) {
+      this.root.classList.toggle(`dock-${e}`, free && this.dockEdge === e);
+    }
     this.applyGeometry();
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
