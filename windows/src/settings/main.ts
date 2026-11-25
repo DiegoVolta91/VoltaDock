@@ -474,7 +474,7 @@ function render() {
   document.title = tr.settings.windowTitle;
   clear(root);
   root.append(
-    h("h1", {}, h("span", { text: "Coucou" }), h("span", { class: "version", text: version })),
+    h("h1", {}, h("span", { text: "VoltaDock" }), h("span", { class: "version", text: version })),
     claudeSection(loaded.status),
     apiSection(loaded.hasKey),
     integrationsSection(loaded.present),

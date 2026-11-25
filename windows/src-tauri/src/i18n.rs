@@ -55,12 +55,12 @@ pub struct Messages {
 }
 
 pub const ES: Messages = Messages {
-    tray_open: "Abrir Coucou",
+    tray_open: "Abrir VoltaDock",
     tray_focus: "Empezar 25 min de enfoque",
     tray_settings: "Ajustes…",
     tray_pause: "Pausar",
     tray_quit: "Salir",
-    settings_title: "Ajustes — Coucou",
+    settings_title: "Ajustes — VoltaDock",
 
     resume_title: "Claude - continuar",
     resume_prompt: "Continua donde te quedaste",
@@ -85,8 +85,8 @@ pub const ES: Messages = Messages {
     untitled: "Sin título",
 
     cant_read: "No se puede leer {path}: {err}",
-    not_object: "{path} no es un objeto JSON: Coucou no lo va a tocar.",
-    invalid_json: "{path} no es un JSON válido ({err}). Corrígelo o muévelo y vuelve a intentarlo: Coucou no lo va a sobrescribir.",
+    not_object: "{path} no es un objeto JSON: VoltaDock no lo va a tocar.",
+    invalid_json: "{path} no es un JSON válido ({err}). Corrígelo o muévelo y vuelve a intentarlo: VoltaDock no lo va a sobrescribir.",
     changed_since_preview: "{path} cambió desde la vista previa. No se escribió nada: revisa el nuevo diff.",
     backup_failed: "Falló la copia de seguridad: {err}",
     write_failed: "Falló la escritura: {err}",
@@ -96,12 +96,12 @@ pub const ES: Messages = Messages {
 };
 
 pub const EN: Messages = Messages {
-    tray_open: "Open Coucou",
+    tray_open: "Open VoltaDock",
     tray_focus: "Start a 25 min focus",
     tray_settings: "Settings…",
     tray_pause: "Pause",
     tray_quit: "Quit",
-    settings_title: "Settings — Coucou",
+    settings_title: "Settings — VoltaDock",
 
     resume_title: "Claude - continue",
     resume_prompt: "Continue where you left off",
@@ -126,8 +126,8 @@ pub const EN: Messages = Messages {
     untitled: "Untitled",
 
     cant_read: "Can't read {path}: {err}",
-    not_object: "{path} isn't a JSON object — Coucou won't touch it.",
-    invalid_json: "{path} isn't valid JSON ({err}). Fix or move it, then try again — Coucou won't overwrite it.",
+    not_object: "{path} isn't a JSON object — VoltaDock won't touch it.",
+    invalid_json: "{path} isn't valid JSON ({err}). Fix or move it, then try again — VoltaDock won't overwrite it.",
     changed_since_preview: "{path} changed since the preview. Nothing was written — review the new diff.",
     backup_failed: "backup failed: {err}",
     write_failed: "write failed: {err}",

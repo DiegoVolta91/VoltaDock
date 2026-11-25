@@ -47,7 +47,7 @@ export const en: Messages = {
   question: {
     asking: "Claude Code is asking a question",
     fallback: "Claude needs an answer.",
-    cantReply: "Coucou can't reply for you yet.",
+    cantReply: "VoltaDock can't reply for you yet.",
   },
 
   error: {
@@ -222,21 +222,21 @@ export const en: Messages = {
   },
 
   settings: {
-    windowTitle: "Settings — Coucou",
+    windowTitle: "Settings — VoltaDock",
     claude: {
       connected:
-        "Coucou is hooked into your Claude Code sessions. Tool calls, questions and permission requests show up in the island, and you can answer them there.",
+        "VoltaDock is hooked into your Claude Code sessions. Tool calls, questions and permission requests show up in the island, and you can answer them there.",
       notConnected:
         "Install the hooks to see your Claude Code sessions in the island and approve permissions without leaving what you are doing.",
       hookMissing:
-        "coucou-hook.exe is not in place yet. Restart Coucou; if it still fails, build it with `cargo build -p coucou-hook`.",
+        "coucou-hook.exe is not in place yet. Restart VoltaDock; if it still fails, build it with `cargo build -p coucou-hook`.",
       install: "Install hooks…",
       reinstall: "Reinstall hooks…",
       relayMissing: "The relay isn't installed yet.",
       uninstall: "Uninstall hooks…",
       previewInstall:
         "This is exactly what will change in your settings.json. Your own hooks are left untouched.",
-      previewUninstall: "This removes Coucou's entries only. Your own hooks are left untouched.",
+      previewUninstall: "This removes VoltaDock's entries only. Your own hooks are left untouched.",
       backup: (path: string) => `Backup → ${path}`,
       confirmInstall: "Back up and write",
       confirmUninstall: "Back up and remove",
@@ -259,7 +259,7 @@ export const en: Messages = {
     integrations: {
       title: "Integrations",
       note: (used: number, max: number) =>
-        `Pick up to ${max} pills to show next to Mochi — ${used}/${max} in use. Keys are stored in the Windows Credential Manager, never on disk.`,
+        `Pick up to ${max} pills to show next to Volt — ${used}/${max} in use. Keys are stored in the Windows Credential Manager, never on disk.`,
       secretKey: "Secret key",
       token: "Token",
       instanceUrl: "Instance URL",

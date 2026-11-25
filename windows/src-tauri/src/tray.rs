@@ -32,7 +32,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let menu = menu(app)?;
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
-        .tooltip("Coucou")
+        .tooltip("VoltaDock")
         .menu(&menu)
         .on_menu_event(|app: &AppHandle, event| match event.id.as_ref() {
             "quit" => app.exit(0),

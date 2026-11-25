@@ -48,7 +48,7 @@ export const es = {
   question: {
     asking: "Claude Code te hace una pregunta",
     fallback: "Claude necesita una respuesta.",
-    cantReply: "Coucou aún no puede responder por ti.",
+    cantReply: "VoltaDock aún no puede responder por ti.",
   },
 
   error: {
@@ -227,21 +227,21 @@ export const es = {
   },
 
   settings: {
-    windowTitle: "Ajustes — Coucou",
+    windowTitle: "Ajustes — VoltaDock",
     claude: {
       connected:
-        "Coucou está conectado a tus sesiones de Claude Code. Las llamadas a herramientas, las preguntas y las peticiones de permiso aparecen en la isla y puedes responderlas desde ahí.",
+        "VoltaDock está conectado a tus sesiones de Claude Code. Las llamadas a herramientas, las preguntas y las peticiones de permiso aparecen en la isla y puedes responderlas desde ahí.",
       notConnected:
         "Instala los hooks para ver tus sesiones de Claude Code en la isla y aprobar permisos sin dejar lo que estás haciendo.",
       hookMissing:
-        "coucou-hook.exe todavía no está en su sitio. Reinicia Coucou; si sigue fallando, compílalo con `cargo build -p coucou-hook`.",
+        "coucou-hook.exe todavía no está en su sitio. Reinicia VoltaDock; si sigue fallando, compílalo con `cargo build -p coucou-hook`.",
       install: "Instalar hooks…",
       reinstall: "Reinstalar hooks…",
       relayMissing: "El relay aún no está instalado.",
       uninstall: "Desinstalar hooks…",
       previewInstall:
         "Esto es exactamente lo que cambiará en tu settings.json. Tus propios hooks no se tocan.",
-      previewUninstall: "Esto solo quita las entradas de Coucou. Tus propios hooks no se tocan.",
+      previewUninstall: "Esto solo quita las entradas de VoltaDock. Tus propios hooks no se tocan.",
       backup: (path: string) => `Copia de seguridad → ${path}`,
       confirmInstall: "Hacer copia y escribir",
       confirmUninstall: "Hacer copia y quitar",
@@ -264,7 +264,7 @@ export const es = {
     integrations: {
       title: "Integraciones",
       note: (used: number, max: number) =>
-        `Elige hasta ${max} píldoras para mostrar junto a Mochi: ${used}/${max} en uso. Las claves se guardan en el Administrador de credenciales de Windows, nunca en disco.`,
+        `Elige hasta ${max} píldoras para mostrar junto a Volt: ${used}/${max} en uso. Las claves se guardan en el Administrador de credenciales de Windows, nunca en disco.`,
       secretKey: "Clave secreta",
       token: "Token",
       instanceUrl: "URL de la instancia",
