@@ -1,6 +1,8 @@
 # Contributing to VoltaDock
 
-Thanks for wanting to help Mochi grow up! 🫶
+Thanks for wanting to help Volt grow up! 🫶
+
+*¿Prefieres español? Los issues y PRs en español son igual de bienvenidos.*
 
 ## Getting started
 
@@ -14,7 +16,7 @@ Never edit `NotchBuddy.xcodeproj` by hand: change `project.yml` and run `xcodege
 ## Good first contributions
 
 - A new integration (a poller + a pill + a detail card). Look at `StripePoller.swift` for a compact example.
-- A new emote or sound for Mochi.
+- A new emote or sound for Volt (`VoltShape.swift` and `windows/src/mochi/volt.ts` draw it, `scripts/gen-sounds.py` makes the sounds).
 - Bug fixes — please describe how to reproduce.
 
 ## Rules of the house
