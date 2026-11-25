@@ -45,6 +45,14 @@ pub struct Settings {
     /// Lets a paired iPad connect over the local network (remote.rs). Off by default.
     #[serde(default)]
     pub remote_enabled: bool,
+    /// Office files dropped on the island are read with docpack (docpack.rs)
+    /// before they go to Claude. On by default; PDFs and images are unaffected.
+    #[serde(default = "default_true")]
+    pub docpack_enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_dock() -> String {
@@ -78,6 +86,7 @@ impl Default for Settings {
             model: default_model(),
             projects_root: String::new(),
             remote_enabled: false,
+            docpack_enabled: true,
             language: default_language(),
             dock: default_dock(),
             dock_x: 0.5,
