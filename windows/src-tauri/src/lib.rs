@@ -74,8 +74,8 @@ fn save_settings(app: AppHandle, shared: State<Shared>, mut settings: Settings) 
         // Where the island sits is Rust's to decide (drag, reset): a window
         // holding an older copy must not put it back.
         settings.dock = current.dock.clone();
-        settings.dock_x = current.dock_x;
-        settings.dock_y = current.dock_y;
+        settings.dock_edge = current.dock_edge.clone();
+        settings.dock_pos = current.dock_pos;
         settings.dock_monitor = current.dock_monitor.clone();
         let screen_changed = current.screen != settings.screen;
         let autostart_changed = current.autostart != settings.autostart;

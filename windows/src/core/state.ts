@@ -121,6 +121,8 @@ export interface IntegrationInfo {
   configured: boolean;
 }
 
+export type DockEdge = "top" | "bottom" | "left" | "right";
+
 export interface Settings {
   soundEnabled: boolean;
   soundVolume: number;
@@ -137,13 +139,14 @@ export interface Settings {
   /** Interface language: "es" (default), "en", or "system" to follow Windows. */
   language: Language;
   /**
-   * "top" = top centre of the display (default); "free" = wherever the user
-   * dragged it. Written by Rust only (drag, reset).
+   * "top" = top centre of the display (default); "free" = docked to the edge the
+   * user dropped it on. Written by Rust only (drag, reset).
    */
   dock: "top" | "free";
-  /** Free dock: anchor as fractions of the display's work area (see settings.rs). */
-  dockX: number;
-  dockY: number;
+  /** Free dock: the display edge the island is attached to. */
+  dockEdge: DockEdge;
+  /** Free dock: where along that edge, 0..1 of the display's work area. */
+  dockPos: number;
   dockMonitor: string;
   /** A paired iPad may connect over the local network. Off by default. */
   remoteEnabled: boolean;
@@ -166,8 +169,8 @@ export const DEFAULT_SETTINGS: Settings = {
   projectsRoot: "",
   language: "es",
   dock: "top",
-  dockX: 0.5,
-  dockY: 0,
+  dockEdge: "top",
+  dockPos: 0.5,
   dockMonitor: "",
   remoteEnabled: false,
   docpackEnabled: true,

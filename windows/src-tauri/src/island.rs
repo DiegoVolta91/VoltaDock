@@ -4,8 +4,8 @@
 // There is no notch on a PC, so the island is a black shape drawn inside a
 // borderless, transparent, always-on-top window that never takes focus. By
 // default it sits at the top centre of the display, like the notch; the user can
-// also drag it anywhere ("free" dock), and it then grows downwards in the upper
-// half of a display and upwards in the lower half.
+// also drag it to the top, bottom, left or right edge of any display ("free"
+// dock): it stays attached to that edge and opens away from it.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
@@ -34,15 +34,14 @@ pub const PANEL_H: f64 = 320.0;
 pub const STRIP_W: f64 = 240.0;
 pub const STRIP_H: f64 = 6.0;
 
-/// Logical size of the small visible handle a free-placed island shrinks to when
-/// hidden. Away from the top edge an invisible strip could never be found again.
-pub const HANDLE_W: f64 = 120.0;
-pub const HANDLE_H: f64 = 14.0;
+/// Logical size of the small visible handle a docked island shrinks to when
+/// hidden (long side along the edge). An invisible strip anywhere but the top
+/// centre could never be found again.
+pub const HANDLE_LONG: f64 = 120.0;
+pub const HANDLE_SHORT: f64 = 14.0;
 
-/// A drop whose top edge lands this close to the top of a display sticks the
-/// island to that edge (flat top, like the notch), in logical px.
-const SNAP_TOP: f64 = 24.0;
-/// Stuck to the top edge this close to the middle → back to the default place.
+/// Dropped on the top edge this close to the middle of the primary display →
+/// back to the default place.
 const SNAP_CENTRE: f64 = 32.0;
 /// Pointer travel, in physical px, before a press on the island becomes a move.
 const DRAG_THRESHOLD: f64 = 6.0;
@@ -256,22 +255,38 @@ fn work_area(m: &Monitor) -> (f64, f64, f64, f64) {
     )
 }
 
-/// Free dock: the anchor in physical px, kept where the whole panel fits on the
-/// display, and whether the island grows upwards from it.
-fn free_anchor(m: &Monitor, s: &Settings) -> (f64, f64, bool) {
+/// The edge a free dock is attached to ("top" for anything unknown).
+fn edge_of(s: &Settings) -> &'static str {
+    match s.dock_edge.as_str() {
+        "bottom" => "bottom",
+        "left" => "left",
+        "right" => "right",
+        _ => "top",
+    }
+}
+
+/// Free dock: top-left of a window of `pw`×`ph` physical px, flush with its edge
+/// of the display's work area and centred on the stored position along it. The
+/// position is kept where the whole panel fits, so the island can never be
+/// pushed off screen.
+fn free_origin(m: &Monitor, s: &Settings, pw: f64, ph: f64) -> (f64, f64) {
     let scale = m.scale_factor();
     let (wx, wy, ww, wh) = work_area(m);
-    let up = s.dock_y > 0.5;
-    let half_w = PANEL_W * scale / 2.0;
-    let ph = PANEL_H * scale;
-    let ax = clamp_range(wx + s.dock_x * ww, wx + half_w, wx + ww - half_w);
-    let ay = wy + s.dock_y * wh;
-    let ay = if up {
-        clamp_range(ay, wy + ph, wy + wh)
-    } else {
-        clamp_range(ay, wy, wy + wh - ph)
-    };
-    (ax, ay, up)
+    let pos = s.dock_pos.clamp(0.0, 1.0);
+    match edge_of(s) {
+        edge @ ("top" | "bottom") => {
+            let half = PANEL_W * scale / 2.0;
+            let ax = clamp_range(wx + pos * ww, wx + half, wx + ww - half);
+            let y = if edge == "top" { wy } else { wy + wh - ph };
+            (ax - pw / 2.0, y)
+        }
+        edge => {
+            let half = PANEL_H * scale / 2.0;
+            let ay = clamp_range(wy + pos * wh, wy + half, wy + wh - half);
+            let x = if edge == "left" { wx } else { wx + ww - pw };
+            (x, ay - ph / 2.0)
+        }
+    }
 }
 
 fn is_moving(app: &AppHandle) -> bool {
@@ -293,18 +308,18 @@ pub fn apply_geometry(app: &AppHandle, s: &Settings, collapsed: bool) {
     let mp = *m.position();
     let ms = *m.size();
 
+    let sideways = is_free(s) && matches!(edge_of(s), "left" | "right");
     let (lw, lh) = match (collapsed, is_free(s)) {
         (false, _) => (PANEL_W, PANEL_H),
         (true, false) => (STRIP_W, STRIP_H),
-        (true, true) => (HANDLE_W, HANDLE_H),
+        (true, true) if sideways => (HANDLE_SHORT, HANDLE_LONG),
+        (true, true) => (HANDLE_LONG, HANDLE_SHORT),
     };
     let pw = (lw * scale).round().max(1.0) as u32;
     let ph = (lh * scale).round().max(1.0) as u32;
     let (x, y) = if is_free(s) {
-        let (ax, ay, up) = free_anchor(&m, s);
-        let x = (ax - pw as f64 / 2.0).round() as i32;
-        let y = if up { (ay - ph as f64).round() as i32 } else { ay.round() as i32 };
-        (x, y)
+        let (x, y) = free_origin(&m, s, pw as f64, ph as f64);
+        (x.round() as i32, y.round() as i32)
     } else {
         (mp.x + (ms.width as i32 - pw as i32) / 2, mp.y)
     };
@@ -512,57 +527,65 @@ fn follow_pointer(app: &AppHandle, gate: &PollGate) -> bool {
     moved
 }
 
-/// Turns where the island was dropped into the stored dock, then places the
-/// window properly (kept on screen, growing the right way).
+/// Turns where the island was dropped into the stored dock: it attaches to the
+/// edge of the display nearest to the pointer, at the pointer's place along it.
+/// Then the window is placed properly (flush with the edge, kept on screen).
 fn finish_drag(app: &AppHandle) {
     let Some(shared) = app.try_state::<crate::Shared>() else { return };
-    let Some(win) = window(app) else { return };
-    let (Ok(pos), Ok(size)) = (win.outer_position(), win.outer_size()) else { return };
-    let scale = win.scale_factor().unwrap_or(1.0);
+    let Some((cx, cy)) = cursor_physical() else { return };
     let old = shared.settings.lock().unwrap().clone();
-    let was_up = is_free(&old) && old.dock_y > 0.5;
-
-    // Where the island shape itself ended up, in physical px.
-    let ih = shared.gate.rect.lock().unwrap().h.max(1.0) * scale;
-    let ax = pos.x as f64 + size.width as f64 / 2.0;
-    let top = if was_up { pos.y as f64 + size.height as f64 - ih } else { pos.y as f64 };
-    let bottom = top + ih;
-    let cy = (top + bottom) / 2.0;
 
     let monitors = app.available_monitors().unwrap_or_default();
     let primary = app.primary_monitor().ok().flatten();
     let Some(m) = monitors
         .iter()
-        .find(|m| monitor_contains(m, ax, cy))
+        .find(|m| monitor_contains(m, cx, cy))
         .cloned()
         .or_else(|| primary.clone())
         .or_else(|| monitors.first().cloned())
     else {
         return;
     };
-    let ms = m.scale_factor();
+    let scale = m.scale_factor();
     let (wx, wy, ww, wh) = work_area(&m);
+
+    // Nearest edge, by distance in pixels.
+    let dists = [
+        ("top", cy - wy),
+        ("bottom", wy + wh - cy),
+        ("left", cx - wx),
+        ("right", wx + ww - cx),
+    ];
+    let edge = dists
+        .iter()
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|d| d.0)
+        .unwrap_or("top");
+    let pos = if matches!(edge, "top" | "bottom") {
+        (cx - wx) / ww
+    } else {
+        (cy - wy) / wh
+    }
+    .clamp(0.0, 1.0);
 
     let mut next = old.clone();
     next.dock = "free".into();
+    next.dock_edge = edge.into();
+    next.dock_pos = pos;
     next.dock_monitor = m.name().cloned().unwrap_or_default();
-    next.dock_x = ((ax - wx) / ww).clamp(0.0, 1.0);
-    if top - wy <= SNAP_TOP * ms {
-        // Stuck to the top edge. Near the middle of the display the island would
-        // live on anyway, that is simply the default place again.
-        next.dock_y = 0.0;
-        if (ax - (wx + ww / 2.0)).abs() <= SNAP_CENTRE * ms {
-            next.dock_x = 0.5;
-            let is_primary = primary.as_ref().is_some_and(|p| p.name() == m.name());
-            if old.screen == "primary" && is_primary {
-                next.dock = "top".into();
-            }
-        }
-    } else if (cy - wy) / wh > 0.5 {
-        // Lower half: anchored on its bottom edge, opens upwards.
-        next.dock_y = ((bottom - wy) / wh).clamp(0.5001, 1.0);
-    } else {
-        next.dock_y = ((top - wy) / wh).clamp(0.0, 0.5);
+
+    // Top edge, near the middle of the main display the island would live on
+    // anyway: that is simply the default place again.
+    let is_primary = primary.as_ref().is_some_and(|p| p.name() == m.name());
+    if edge == "top"
+        && is_primary
+        && old.screen == "primary"
+        && (cx - (wx + ww / 2.0)).abs() <= SNAP_CENTRE * scale
+    {
+        next.dock = "top".into();
+        next.dock_edge = "top".into();
+        next.dock_pos = 0.5;
+        next.dock_monitor.clear();
     }
 
     store_dock(app, next);
@@ -576,8 +599,8 @@ pub fn store_dock(app: &AppHandle, next: Settings) {
         eprintln!("[voltadock] could not save settings: {err}");
     }
     crate::log::line(format!(
-        "dock: {} x={:.3} y={:.3} on {:?}",
-        next.dock, next.dock_x, next.dock_y, next.dock_monitor
+        "dock: {} edge={} pos={:.3} on {:?}",
+        next.dock, next.dock_edge, next.dock_pos, next.dock_monitor
     ));
     let collapsed = shared.gate.collapsed.load(Ordering::Relaxed);
     apply_geometry(app, &next, collapsed);
@@ -591,8 +614,8 @@ pub fn reset_dock(app: &AppHandle) {
     let Some(shared) = app.try_state::<crate::Shared>() else { return };
     let mut next = shared.settings.lock().unwrap().clone();
     next.dock = "top".into();
-    next.dock_x = 0.5;
-    next.dock_y = 0.0;
+    next.dock_edge = "top".into();
+    next.dock_pos = 0.5;
     next.dock_monitor.clear();
     store_dock(app, next);
 }

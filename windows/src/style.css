@@ -66,28 +66,53 @@ body {
 /* Free dock: a small visible handle where the island sleeps, since away from
    the top edge nobody would find an invisible strip. */
 .dock-free #wake-strip {
-  width: 120px;
-  height: 14px;
+  /* The collapsed window is exactly the handle: 120×14, or 14×120 on a side. */
+  inset: 0;
+  width: auto;
+  height: auto;
+  transform: none;
 }
 
 .dock-free #wake-strip::after {
   content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 56px;
-  height: 6px;
-  border-radius: 3px;
   background: #000;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
-/* Lower half of a display: the island grows upwards from its bottom edge. */
-.dock-up #wake-strip,
-.dock-up #island {
-  top: auto;
+/* Only the collapsed window is the handle; the full one is the island's. */
+.dock-free:not(.win-collapsed) #wake-strip {
+  display: none;
+}
+
+/* Each handle hugs the display edge it belongs to. */
+.dock-top #wake-strip::after,
+.dock-bottom #wake-strip::after {
+  left: 32px;
+  right: 32px;
+  height: 6px;
+}
+.dock-top #wake-strip::after {
+  top: 0;
+  border-radius: 0 0 3px 3px;
+}
+.dock-bottom #wake-strip::after {
   bottom: 0;
+  border-radius: 3px 3px 0 0;
+}
+.dock-left #wake-strip::after,
+.dock-right #wake-strip::after {
+  top: 32px;
+  bottom: 32px;
+  width: 6px;
+}
+.dock-left #wake-strip::after {
+  left: 0;
+  border-radius: 0 3px 3px 0;
+}
+.dock-right #wake-strip::after {
+  right: 0;
+  border-radius: 3px 0 0 3px;
 }
 
 .dock-moving,
