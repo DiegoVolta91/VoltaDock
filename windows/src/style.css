@@ -1832,3 +1832,12 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 2px;
   transition: width 1s linear;
 }
+
+/* Hoy: section label between the to-dos and the habits. */
+.today-section {
+  font: 600 9.5px var(--font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim-3);
+  padding: 8px 8px 2px;
+}

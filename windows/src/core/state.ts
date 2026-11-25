@@ -147,6 +147,10 @@ export interface Settings {
   dockMonitor: string;
   /** A paired iPad may connect over the local network. Off by default. */
   remoteEnabled: boolean;
+  /** Volt says "Claude terminó" and the like out loud. Off by default. */
+  voiceEnabled: boolean;
+  /** Look for a newer release on GitHub at launch. Off by default. */
+  updateCheck: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -168,6 +172,8 @@ export const DEFAULT_SETTINGS: Settings = {
   dockY: 0,
   dockMonitor: "",
   remoteEnabled: false,
+  voiceEnabled: false,
+  updateCheck: false,
 };
 
 type Listener = () => void;

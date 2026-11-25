@@ -15,6 +15,7 @@ mod secrets;
 mod sessions;
 mod settings;
 mod tray;
+mod updates;
 mod usage;
 mod win_user;
 
@@ -485,6 +486,33 @@ fn secret_set(key: String, value: String) -> Result<(), String> {
     secrets::set(&key, &value)
 }
 
+/// "Borrar mis datos": the saved keys go from the Credential Manager and every
+/// window is told to empty what it keeps (lists, sessions, chat). Preferences stay.
+#[tauri::command]
+fn erase_data(app: AppHandle, chat: State<Chat>) -> Result<(), String> {
+    let mut failed = Vec::new();
+    for key in secrets::KNOWN_KEYS {
+        if secrets::clear(key).is_err() {
+            failed.push(*key);
+        }
+    }
+    chat.reset();
+    // The copies of dropped files (the originals are never touched).
+    let _ = std::fs::remove_dir_all(files::inbox_dir());
+    let _ = app.emit("data-cleared", ());
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("could not remove: {}", failed.join(", ")))
+    }
+}
+
+/// Looks for a newer release on GitHub.
+#[tauri::command]
+async fn check_update() -> updates::UpdateInfo {
+    updates::check().await
+}
+
 #[tauri::command]
 fn secret_clear(key: String) -> Result<(), String> {
     secrets::clear(&key)
@@ -623,6 +651,8 @@ pub fn run() {
             secret_present,
             secret_set,
             secret_clear,
+            erase_data,
+            check_update,
             refresh_integration,
             open_n8n,
             open_settings_window,

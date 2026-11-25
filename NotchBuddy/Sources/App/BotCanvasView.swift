@@ -62,6 +62,9 @@ struct BotCanvasView: View {
                 engine.triggerEmote(emote)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .botConfirm)) { _ in
+            engine.confirm()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .triggerSlap)) { _ in
             engine.slap()
         }

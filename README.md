@@ -41,7 +41,10 @@ Te presento a **Volt**: una pila con antena de rayo que sale del notch, te salud
 - 💬 **Pregúntale lo que sea a Claude**: chat integrado, directo desde la isla.
 - 📎 **Suelta un archivo en la isla**: Volt se convierte en caja y se lo traga; luego pregunta sobre él o envíalo por correo *(correo: macOS, Mail.app)*.
 - 🪟 **Arrastra a Volt sobre cualquier ventana**: la adjunta como contexto para Claude *(macOS)*.
-- ⏱️ **Hoy**: un temporizador de enfoque de 25 minutos con cuenta regresiva bajo la isla, pendientes rápidos y recordatorios escritos como hablas (“en 10 min estirarme”, “mañana a las 9 dentista”, “a las 17:30 gym”). Los recordatorios que vencieron mientras la computadora dormía aparecen al despertar. Todo se queda en tu máquina. Activa la pastilla **Hoy** en Ajustes.
+- ⏱️ **Hoy**: un temporizador de enfoque de 25 minutos con cuenta regresiva bajo la isla, pendientes rápidos y recordatorios escritos como hablas (“en 10 min estirarme”, “mañana a las 9 dentista”, “a las 17:30 gym”). Los recordatorios que vencieron mientras la computadora dormía aparecen al despertar. Los recordatorios pueden repetirse (“cada lunes a las 9 revisar correo”, “cada 2 horas estirarme”), y puedes llevar hábitos con racha escribiendo “hábito beber agua”. Todo se queda en tu máquina. Activa la pastilla **Hoy** en Ajustes.
+- 🗣️ **Voz opcional**: Volt avisa en voz alta “Claude terminó” o “necesita tu permiso” con la voz de tu sistema. Apagada por defecto.
+- 🔔 **Aviso de versión nueva**: si lo activas, consulta una vez al abrir si hay un release más reciente en GitHub. Apagado por defecto.
+- 🧹 **Borrar mis datos**: un botón en Ajustes que borra lo que la app guarda en tu equipo (pendientes, hábitos, chat, copias de archivos y claves).
 - 🔌 **Integraciones**: pagos de Stripe, flujos de n8n, GitHub, despliegues de Vercel, correos de Resend, Notion, Cal.com. Cada una tiene su propio mini Volt de color.
 - 📱 **Compañero para iPad** *(en desarrollo)*: ver y aprobar desde un iPad en la misma red Wi-Fi.
 - 🎭 **Un personaje de verdad**: respira, parpadea, sus ojos siguen al mouse, tiene emociones, 28 sonidos y un saludo al arrancar.

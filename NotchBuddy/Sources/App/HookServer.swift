@@ -195,9 +195,11 @@ final class HookServer: @unchecked Sendable {
             if lower.contains("rate limit") || lower.contains("limite d") {
                 state.updateTask(id: "integration_claude", state: .ratelimit)
                 SoundEngine.shared.play("rate")
+                Voice.shared.say("Claude hit its limit")
             } else if message.hasSuffix("?") {
                 state.updateTask(id: "integration_claude", state: .question)
                 appendStep(id: "integration_claude", step: message)
+                Voice.shared.say("Claude has a question")
             }
 
         case "Stop":
@@ -206,6 +208,7 @@ final class HookServer: @unchecked Sendable {
                 appendStep(id: "integration_claude", step: String(message.prefix(60)))
             }
             SoundEngine.shared.play("finish")
+            Voice.shared.say("Claude is done")
             if focused {
                 expandIfNeeded(to: .finished)
             } else {
@@ -219,6 +222,8 @@ final class HookServer: @unchecked Sendable {
         case "StopFailure":
             state.updateTask(id: "integration_claude", state: .error)
             SoundEngine.shared.play("error")
+            Voice.shared.say("Something failed")
+            NotificationCenter.default.post(name: .triggerEmote, object: BotEmote.worried)
             if focused {
                 expandIfNeeded(to: .error)
             } else {
@@ -309,6 +314,7 @@ final class HookServer: @unchecked Sendable {
         state.pendingApproval = ApprovalInfo(sessionId: sessionId, tool: tool, command: command)
         state.isPinned = true
         SoundEngine.shared.play("approval")
+        Voice.shared.say("Claude needs your permission")
 
         // Approval always forces the island open — user must be able to respond
         state.focusId = "integration_claude"

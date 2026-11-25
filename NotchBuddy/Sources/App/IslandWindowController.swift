@@ -831,6 +831,7 @@ struct GhostBotView: View {
 
 extension Notification.Name {
     static let triggerEmote     = Notification.Name("notchBuddy.triggerEmote")
+    static let botConfirm       = Notification.Name("notchBuddy.botConfirm")
     static let triggerSlap      = Notification.Name("notchBuddy.triggerSlap")
     static let botDizzy         = Notification.Name("notchBuddy.botDizzy")
     static let botGreet         = Notification.Name("notchBuddy.botGreet")

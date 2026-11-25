@@ -56,7 +56,7 @@ interface BotStateCfg {
 }
 
 interface Particle {
-  type: "heart" | "star" | "spark" | "sweat" | "z";
+  type: "heart" | "star" | "spark" | "sweat" | "z" | "check";
   x: number; y: number; vx: number; vy: number;
   age: number; life: number; rot: number; size: number;
 }
@@ -114,7 +114,7 @@ export const STATE_SOUND: Partial<Record<BotStateName, string>> = {
 
 const EMOTE_EYE: Record<BotEmoteName, EyeShape> = {
   love: "heart", surprised: "dot", proud: "star", wink: "wink",
-  yawn: "tired", happy: "happy", annoyed: "line",
+  yawn: "tired", happy: "happy", annoyed: "line", cheer: "star", worried: "wide",
 };
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
@@ -424,7 +424,27 @@ export class BotEngine {
         this.eyeOverrideUntil = t + 0.8;
         setTimeout(() => Sound.play("annoyed"), 60);
         break;
+      case "cheer":
+        // A hop with confetti: the whole routine is done, or a block finished.
+        this.anim("oy", [[-0.38, 150, Ease.out], [0.04, 240, Ease.inOut], [-0.18, 130, Ease.out], [0, 200, Ease.back]]);
+        this.anim("sy", [[0.86, 90, Ease.out], [1.16, 160, Ease.out], [1, 260, Ease.back]]);
+        this.anim("blush", [[0.7, 200, Ease.out], [0.7, (duration - 0.5) * 1000, Ease.lin], [0, 300, Ease.inOut]]);
+        this.emit("star", 4);
+        this.emit("spark", 4);
+        break;
+      case "worried":
+        // Wide eyes, a small shake and a drop of sweat.
+        this.anim("yaw", [[-0.3, 70, Ease.out], [0.3, 120, Ease.inOut], [-0.2, 100, Ease.inOut], [0, 160, Ease.out]]);
+        this.anim("es", [[1.12, 140, Ease.out], [1, 500, Ease.inOut]]);
+        this.emit("sweat", 2);
+        break;
     }
+  }
+
+  /** A short green tick over Volt: the thing you asked for worked. */
+  confirm() {
+    this.emit("check", 1);
+    this.anim("oy", [[-0.12, 110, Ease.out], [0, 220, Ease.back]]);
   }
 
   emit(type: Particle["type"], count: number) {
@@ -1150,6 +1170,21 @@ export class BotEngine {
           x.quadraticCurveTo(sz * 0.8, sz * 0.2, 0, sz * 0.6);
           x.quadraticCurveTo(-sz * 0.8, sz * 0.2, 0, -sz);
           x.fill();
+          break;
+        case "check":
+          x.fillStyle = "#22C55E";
+          x.beginPath();
+          x.arc(0, 0, sz * 1.05, 0, Math.PI * 2);
+          x.fill();
+          x.strokeStyle = "#fff";
+          x.lineWidth = Math.max(1.2, sz * 0.38);
+          x.lineCap = "round";
+          x.lineJoin = "round";
+          x.beginPath();
+          x.moveTo(-sz * 0.5, 0);
+          x.lineTo(-sz * 0.12, sz * 0.42);
+          x.lineTo(sz * 0.55, -sz * 0.36);
+          x.stroke();
           break;
         case "z":
           x.fillStyle = "rgb(209,219,235)";

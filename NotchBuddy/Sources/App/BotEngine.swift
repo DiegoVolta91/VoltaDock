@@ -31,7 +31,7 @@ struct Tween {
 // MARK: - Particle
 
 struct Particle {
-    enum ParticleType { case heart, star, spark, sweat, z }
+    enum ParticleType { case heart, star, spark, sweat, z, check }
     var type: ParticleType
     var x, y, vx, vy: CGFloat
     var age: Double        // seconds
@@ -376,7 +376,49 @@ final class BotEngine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                 SoundEngine.shared.play("annoyed")
             }
+        case .cheer:
+            // A hop with confetti: the whole routine is done, or a block finished.
+            anim("oy", keys: [
+                TweenKey(target: -0.38, duration: 150, ease: Ease.out),
+                TweenKey(target: 0.04,  duration: 240, ease: Ease.inOut),
+                TweenKey(target: -0.18, duration: 130, ease: Ease.out),
+                TweenKey(target: 0,     duration: 200, ease: Ease.back),
+            ])
+            anim("sy", keys: [
+                TweenKey(target: 0.86, duration: 90,  ease: Ease.out),
+                TweenKey(target: 1.16, duration: 160, ease: Ease.out),
+                TweenKey(target: 1,    duration: 260, ease: Ease.back),
+            ])
+            anim("blush", keys: [
+                TweenKey(target: 0.7, duration: 200, ease: Ease.out),
+                TweenKey(target: 0.7, duration: CGFloat((duration - 0.5) * 1000), ease: Ease.lin),
+                TweenKey(target: 0,   duration: 300, ease: Ease.inOut),
+            ])
+            emit(.star, count: 4)
+            emit(.spark, count: 4)
+        case .worried:
+            // Wide eyes, a small shake and a drop of sweat.
+            anim("yaw", keys: [
+                TweenKey(target: -0.3, duration: 70,  ease: Ease.out),
+                TweenKey(target: 0.3,  duration: 120, ease: Ease.inOut),
+                TweenKey(target: -0.2, duration: 100, ease: Ease.inOut),
+                TweenKey(target: 0,    duration: 160, ease: Ease.out),
+            ])
+            anim("es", keys: [
+                TweenKey(target: 1.12, duration: 140, ease: Ease.out),
+                TweenKey(target: 1,    duration: 500, ease: Ease.inOut),
+            ])
+            emit(.sweat, count: 2)
         }
+    }
+
+    /// A short green tick over Volt: the thing you asked for worked.
+    func confirm() {
+        emit(.check, count: 1)
+        anim("oy", keys: [
+            TweenKey(target: -0.12, duration: 110, ease: Ease.out),
+            TweenKey(target: 0,     duration: 220, ease: Ease.back),
+        ])
     }
 
     // MARK: - Mini periodic behavior loop
@@ -1386,6 +1428,15 @@ final class BotEngine: ObservableObject {
                 drop.addQuadCurve(to: CGPoint(x: 0, y: sz*0.6), control: CGPoint(x: sz*0.8, y: sz*0.2))
                 drop.addQuadCurve(to: CGPoint(x: 0, y: -sz), control: CGPoint(x: -sz*0.8, y: sz*0.2))
                 pctx.fill(drop, with: .color(Color(hex: "#7CC7FF")))
+            case .check:
+                let disc = Path(ellipseIn: CGRect(x: -sz * 1.05, y: -sz * 1.05, width: sz * 2.1, height: sz * 2.1))
+                pctx.fill(disc, with: .color(Color(hex: "#22C55E")))
+                var tick = Path()
+                tick.move(to: CGPoint(x: -sz * 0.5, y: 0))
+                tick.addLine(to: CGPoint(x: -sz * 0.12, y: sz * 0.42))
+                tick.addLine(to: CGPoint(x: sz * 0.55, y: -sz * 0.36))
+                pctx.stroke(tick, with: .color(.white),
+                            style: StrokeStyle(lineWidth: max(1.2, sz * 0.38), lineCap: .round, lineJoin: .round))
             case .z:
                 pctx.draw(Text("z").font(.system(size: sz*1.9, weight: .bold)).foregroundColor(Color(red: 0.82, green: 0.86, blue: 0.92)),
                           at: .zero)
@@ -1500,6 +1551,8 @@ private func emoteEyeShape(_ e: BotEmote) -> EyeShape {
     case .yawn:      return .tired
     case .happy:     return .happy
     case .annoyed:   return .line
+    case .cheer:     return .star
+    case .worried:   return .wide
     }
 }
 

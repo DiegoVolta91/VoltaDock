@@ -7,7 +7,7 @@ import {
   EXPANDED_CORNER, EXPANDED_W, NOTCH_W, PANEL_H, PANEL_W,
   ROUNDED_CORNER, VIEW_LAYOUTS, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
   islandSize,
-  type IslandMode, type IslandViewName,
+  type BotEmoteName, type IslandMode, type IslandViewName,
 } from "../core/layout";
 import { Sound } from "../core/sound";
 import { State } from "../core/state";
@@ -134,12 +134,19 @@ export class Island {
     });
   }
 
+  /** Volt reacts (used by the hook handlers). */
+  emote(name: BotEmoteName) {
+    this.engine.triggerEmote(name);
+  }
+
   /** Hoy: reminders and focus blocks. Started after launch so the greeting goes first. */
   startToday() {
     Today.start({
       showAlert: () => this.alert("reminder"),
       collapse: () => this.collapse(),
       emote: (name) => this.engine.triggerEmote(name),
+      confirm: () => this.engine.confirm(),
+      openUrl: (url) => void Bridge.openUrl(url),
       sound: (name) => Sound.play(name),
     });
   }
@@ -197,6 +204,7 @@ export class Island {
         void Bridge.log(`decide ${d} req=${req?.requestId ?? "none"}`);
         if (!req) return;
         Sound.play(d === "deny" ? "blip" : "approve");
+        if (d !== "deny") this.engine.confirm();
         void Bridge.approvalDecision(req.requestId, d);
         // More requests queued: the next one takes the card, nothing else moves.
         if (releaseApproval(req.requestId) > 0) {

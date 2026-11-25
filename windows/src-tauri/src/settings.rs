@@ -45,6 +45,12 @@ pub struct Settings {
     /// Lets a paired iPad connect over the local network (remote.rs). Off by default.
     #[serde(default)]
     pub remote_enabled: bool,
+    /// Volt speaks "Claude terminó" and the like (the front end's speech synthesis). Off by default.
+    #[serde(default)]
+    pub voice_enabled: bool,
+    /// Ask GitHub for a newer release at launch. Off by default.
+    #[serde(default)]
+    pub update_check: bool,
 }
 
 fn default_dock() -> String {
@@ -78,6 +84,8 @@ impl Default for Settings {
             model: default_model(),
             projects_root: String::new(),
             remote_enabled: false,
+            voice_enabled: false,
+            update_check: false,
             language: default_language(),
             dock: default_dock(),
             dock_x: 0.5,

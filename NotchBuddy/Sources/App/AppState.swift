@@ -75,6 +75,16 @@ final class AppState: ObservableObject {
         didSet { UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled") }
     }
 
+    // Volt speaks "Claude is done" and the like out loud — persisted, off by default
+    @Published var voiceEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(voiceEnabled, forKey: "voiceEnabled") }
+    }
+
+    // Look for a newer release on GitHub at launch — persisted, off by default
+    @Published var updateCheck: Bool = false {
+        didSet { UserDefaults.standard.set(updateCheck, forKey: "updateCheck") }
+    }
+
     // Sound volume (0–0.2) — persisted, synced to SoundEngine
     @Published var soundVolume: Double = 0.12 {
         didSet {
@@ -189,6 +199,8 @@ final class AppState: ObservableObject {
 
         if let v = ud.object(forKey: "soundEnabled") as? Bool   { soundEnabled = v }
         if let v = ud.object(forKey: "soundVolume")  as? Double { soundVolume  = v }
+        if let v = ud.object(forKey: "voiceEnabled") as? Bool   { voiceEnabled = v }
+        if let v = ud.object(forKey: "updateCheck")  as? Bool   { updateCheck  = v }
         // Migrate old 60s default → 15s
         if let v = ud.object(forKey: "autoCloseInterval") as? Double {
             autoCloseInterval = (v == 60) ? 15 : v

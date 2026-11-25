@@ -20,6 +20,12 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T |
   }
 }
 
+export interface UpdateDto {
+  status: "newer" | "current" | "none" | "error";
+  version: string;
+  url: string;
+}
+
 export interface BootInfo {
   settings: Settings;
   /** Logical screen rect of the monitor the island lives on. */
@@ -131,6 +137,12 @@ export const Bridge = {
   secretPresent: (key: string) => call<boolean>("secret_present", { key }),
   secretSet: (key: string, value: string) => callOrThrow<void>("secret_set", { key, value }),
   secretClear: (key: string) => callOrThrow<void>("secret_clear", { key }),
+
+  /** "Borrar mis datos": saved keys and dropped-file copies go; every window is told to empty its lists. */
+  eraseData: () => callOrThrow<void>("erase_data"),
+
+  /** One look at GitHub's latest release. */
+  checkUpdate: () => call<UpdateDto>("check_update"),
 
   // ── Integrations ──────────────────────────────────────────────────────────
   refreshIntegration: (id: string) => call<void>("refresh_integration", { id }),

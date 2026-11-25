@@ -581,6 +581,85 @@ function generalSection(): HTMLElement {
       h("label", { text: tr.settings.general.autostart }),
       toggle(settings.autostart, (v) => { settings.autostart = v; void save(); }),
     ),
+    h("div", { class: "row" },
+      h("label", { text: tr.settings.general.voice }),
+      toggle(settings.voiceEnabled, (v) => { settings.voiceEnabled = v; void save(); }),
+      h("span", { class: "hint", text: tr.settings.general.voiceHint }),
+    ),
+    updatesRow(),
+  );
+}
+
+/** The update check: a switch for the launch-time look, and a button for right now. */
+function updatesRow(): HTMLElement {
+  const status = h("span", { class: "hint" });
+  let link: HTMLElement | null = null;
+  const button = h("button", { text: tr.settings.general.updatesCheck });
+  const row = h("div", { class: "row" },
+    h("label", { text: tr.settings.general.updates }),
+    toggle(settings.updateCheck, (v) => { settings.updateCheck = v; void save(); }),
+    button,
+    status,
+  );
+  if (!settings.updateCheck) status.textContent = tr.settings.general.updatesHint;
+  button.addEventListener("click", async () => {
+    link?.remove();
+    link = null;
+    button.setAttribute("disabled", "true");
+    status.textContent = tr.settings.general.updatesChecking;
+    const info = await Bridge.checkUpdate();
+    button.removeAttribute("disabled");
+    if (!info || info.status === "error") status.textContent = tr.settings.general.updatesFailed;
+    else if (info.status === "none") status.textContent = tr.settings.general.updatesNone;
+    else if (info.status === "current") status.textContent = tr.settings.general.updatesCurrent(info.version);
+    else {
+      status.textContent = tr.settings.general.updatesNewer(info.version);
+      if (info.url) {
+        link = h("button", { text: tr.settings.general.updatesOpen, onclick: () => void Bridge.openUrl(info.url) });
+        row.append(link);
+      }
+    }
+  });
+  return row;
+}
+
+/** "Borrar mis datos": two clicks, because there is no undo. */
+let eraseNote = "";
+
+function dataSection(): HTMLElement {
+  const status = h("span", { class: "hint", text: eraseNote });
+  const confirmBtn = h("button", { text: tr.settings.general.eraseConfirm, class: "danger" });
+  confirmBtn.style.display = "none";
+  const ask = h("button", { text: tr.settings.general.eraseButton });
+  ask.addEventListener("click", () => {
+    ask.style.display = "none";
+    confirmBtn.style.display = "";
+    window.setTimeout(() => {
+      confirmBtn.style.display = "none";
+      ask.style.display = "";
+    }, 8000);
+  });
+  confirmBtn.addEventListener("click", async () => {
+    confirmBtn.style.display = "none";
+    ask.style.display = "";
+    try {
+      await Bridge.eraseData();
+      if (loaded) {
+        loaded.hasKey = false;
+        for (const k of Object.keys(loaded.present)) loaded.present[k] = false;
+      }
+      eraseNote = tr.settings.general.eraseDone;
+      render();
+    } catch (err) {
+      status.textContent = String(err);
+    }
+  });
+  return h(
+    "section",
+    {},
+    h("h2", {}, h("span", { text: tr.settings.general.eraseTitle })),
+    h("div", { class: "hint", text: tr.settings.general.eraseText }),
+    h("div", { class: "row" }, ask, confirmBtn, status),
   );
 }
 
@@ -601,6 +680,7 @@ function render() {
     integrationsSection(loaded.present),
     ipadSection(),
     generalSection(),
+    dataSection(),
     h("div", {
       class: "hint",
       text: tr.settings.privacy,

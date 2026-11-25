@@ -10,7 +10,7 @@ import { Sound } from "../core/sound";
 import { washRGBA } from "../core/layout";
 import { tr } from "../i18n";
 import {
-  Today, FOCUS_MS, clock, dueLabel, fraction, isPaused, remaining, type TodayItem,
+  Today, FOCUS_MS, clock, dueLabel, fraction, isPaused, remaining, type Habit, type TodayItem,
 } from "../core/today";
 
 export const TODAY_COLOR = "#2DD4BF";
@@ -108,11 +108,12 @@ export function buildTodayCard(): TodayCard {
       return;
     }
     if (e.key !== "Enter") return;
-    const item = Today.add(input.value);
-    if (!item) return;
+    const added = Today.addLine(input.value);
+    if (!added) return;
     input.value = "";
     add.classList.remove("typing");
-    flash(`${tr.today.added}${item.dueAt != null ? ` · ${dueLabel(item.dueAt)}` : ""}`);
+    if (added.kind === "habit") flash(tr.today.habitAdded);
+    else flash(`${tr.today.added}${added.item.dueAt != null ? ` · ${dueLabel(added.item.dueAt)}` : ""}`);
     Sound.play("pop");
   });
   // While typing, the card must not auto-close under your fingers.
@@ -148,6 +149,7 @@ export function buildTodayCard(): TodayCard {
     const next = Today.nextReminder;
     const parts: string[] = [];
     if (open > 0) parts.push(tr.today.pending(open));
+    if (Today.habits.length > 0) parts.push(tr.today.habitsDone(Today.habitsDoneToday, Today.habits.length));
     if (next?.dueAt != null) parts.push(tr.today.next(dueLabel(next.dueAt).toLowerCase()));
     summary.textContent = parts.length ? parts.join(" · ") : tr.today.nothingPlanned;
 
@@ -181,15 +183,21 @@ export function buildTodayCard(): TodayCard {
   function syncList() {
     const all: TodayItem[] = [...Today.openItems, ...Today.items.filter((i) => i.done)];
     clearDone.style.display = Today.items.some((i) => i.done) ? "" : "none";
-    const key = all.map((i) => `${i.id}:${i.done}:${i.dueAt}:${i.firedAt}:${i.text}`).join("|");
+    const key =
+      all.map((i) => `${i.id}:${i.done}:${i.dueAt}:${i.firedAt}:${i.text}:${i.repeat ? 1 : 0}`).join("|") +
+      "#" + Today.habits.map((x) => `${x.id}:${Today.habitDoneToday(x)}:${Today.streak(x)}:${x.name}`).join("|");
     if (key === rowsKey) return;
     rowsKey = key;
     clear(rows);
-    if (all.length === 0) {
+    if (all.length === 0 && Today.habits.length === 0) {
       rows.append(h("div", { class: "today-empty", text: tr.today.empty }));
       return;
     }
     for (const item of all) rows.append(todayRow(item));
+    if (Today.habits.length > 0) {
+      rows.append(h("div", { class: "today-section", text: tr.today.habitsTitle }));
+      for (const habit of Today.habits) rows.append(habitRow(habit));
+    }
   }
 
   function sync() {
@@ -208,11 +216,26 @@ function todayRow(item: TodayItem): HTMLElement {
   const text = h("span", { class: item.done ? "today-text done" : "today-text", text: item.text });
   const row = h("div", { class: "today-row" }, box, text, h("div", { class: "grow" }));
   if (item.dueAt != null && !item.done) {
-    const due = h("span", { class: "today-due", text: dueLabel(item.dueAt) });
+    const due = h("span", { class: "today-due", text: `${item.repeat ? "↻ " : ""}${dueLabel(item.dueAt)}`, title: item.repeat ? tr.today.repeats : "" });
     if (item.firedAt != null) due.style.color = FOCUS_COLOR;
     row.append(due);
   }
   row.append(h("button", { class: "today-del", title: tr.today.remove, onclick: () => Today.remove(item.id) }, svg(ICONS.xmark, 8)));
+  return row;
+}
+
+function habitRow(habit: Habit): HTMLElement {
+  const done = Today.habitDoneToday(habit);
+  const box = h("button", { class: done ? "today-check on" : "today-check", onclick: () => Today.toggleHabit(habit.id) });
+  if (done) box.append(svg(ICONS.check, 7, { stroke: 3.4 }));
+  const row = h("div", { class: "today-row" }, box, h("span", { class: "today-text", text: habit.name }), h("div", { class: "grow" }));
+  const n = Today.streak(habit);
+  if (n > 0) {
+    const streak = h("span", { class: "today-due", text: tr.today.streak(n) });
+    streak.style.color = n >= 3 ? FOCUS_COLOR : "";
+    row.append(streak);
+  }
+  row.append(h("button", { class: "today-del", title: tr.today.remove, onclick: () => Today.removeHabit(habit.id) }, svg(ICONS.xmark, 8)));
   return row;
 }
 
@@ -234,12 +257,14 @@ export function buildTodayAlert(): { el: HTMLElement; sync(): void } {
     sync() {
       const a = Today.currentAlert;
       if (!a) return;
-      const wash = a.kind === "focusDone" ? "green" : a.kind === "restDone" ? "indigo" : "cyan";
+      const wash = a.kind === "focusDone" ? "green" : a.kind === "restDone" ? "indigo" : a.kind === "update" ? "indigo" : "cyan";
       cardEl.style.setProperty("--wash", washRGBA(wash));
       clear(who);
       let label = "";
       if (a.kind === "reminder") {
         label = a.late ? tr.today.missed(dueLabel(a.dueAt)) : tr.today.reminder(dueLabel(a.dueAt));
+      } else if (a.kind === "update") {
+        label = tr.today.updateLabel(a.version);
       } else if (a.kind === "focusDone") {
         label = tr.today.focusDone(a.blocksToday);
       } else {
@@ -248,12 +273,15 @@ export function buildTodayAlert(): { el: HTMLElement; sync(): void } {
       who.append(dot(TODAY_COLOR, 8), h("span", { class: "n", text: tr.today.name }), h("span", { text: label }));
       title.textContent =
         a.kind === "reminder" ? a.text
+        : a.kind === "update" ? tr.today.updateTitle
         : a.kind === "focusDone" ? tr.today.focusDoneTitle
         : tr.today.restDoneTitle;
       (primary.firstChild as HTMLElement).textContent =
-        a.kind === "focusDone" ? tr.today.restFive : a.kind === "restDone" ? tr.today.focus25 : tr.today.done;
+        a.kind === "focusDone" ? tr.today.restFive : a.kind === "restDone" ? tr.today.focus25
+        : a.kind === "update" ? tr.today.updateOpen : tr.today.done;
       (secondary.firstChild as HTMLElement).textContent =
-        a.kind === "focusDone" ? tr.today.later : a.kind === "restDone" ? tr.today.notNow : tr.today.snooze;
+        a.kind === "focusDone" ? tr.today.later : a.kind === "restDone" ? tr.today.notNow
+        : a.kind === "update" ? tr.today.later : tr.today.snooze;
     },
   };
 }
