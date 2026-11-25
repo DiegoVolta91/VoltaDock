@@ -49,3 +49,18 @@ pub fn clear(key: &str) -> Result<(), String> {
 pub fn present(key: &str) -> bool {
     get(key).is_some()
 }
+
+/// The iPad pairing key. Deliberately not in KNOWN_KEYS: the settings window can
+/// neither set nor clear it, only Rust can (see remote.rs).
+pub const REMOTE_KEY: &str = "remote-pairing-key";
+
+pub fn internal_get(key: &str) -> Option<String> {
+    Entry::new(SERVICE, key).ok()?.get_password().ok().filter(|v| !v.is_empty())
+}
+
+pub fn internal_set(key: &str, value: &str) -> Result<(), String> {
+    Entry::new(SERVICE, key)
+        .map_err(|e| e.to_string())?
+        .set_password(value)
+        .map_err(|e| e.to_string())
+}

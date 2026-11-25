@@ -3,7 +3,7 @@
 // integrations land here too in a later stage.
 
 import "./settings.css";
-import { Bridge, onEvent, type HookStatus } from "../core/bridge";
+import { Bridge, onEvent, type HookStatus, type RemoteStatus } from "../core/bridge";
 import { DEFAULT_SETTINGS, type Settings } from "../core/state";
 import { h, clear } from "../views/dom";
 import { LANGUAGE_NAMES, setLanguage, tr, type Language, type Messages } from "../i18n";
@@ -370,6 +370,116 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
   return h("section", {}, h("h2", {}, h("span", { text: tr.settings.integrations.title })), note, list);
 }
 
+// ── iPad section ──────────────────────────────────────────────────────────────
+
+/** The iPad section currently on screen; the window is redrawn on a language change. */
+let remoteListener: ((s: RemoteStatus) => void) | null = null;
+
+function ipadSection(): HTMLElement {
+  const m = tr.settings.ipad;
+  const dot = statusDot(false);
+  const body = h("div", { style: "display:flex;flex-direction:column;gap:12px" });
+  const state = h("span", { class: "hint" });
+  const pairing = h("div", { style: "display:flex;flex-direction:column;gap:10px" });
+  const feedback = h("div", {});
+  let shown = false;
+
+  const describe = (s: RemoteStatus | null) => {
+    const on = settings.remoteEnabled;
+    dot.style.background = s?.viewers ? "#22c55e" : on && s?.running ? "#f5a623" : "#f4505e";
+    if (!on) state.textContent = m.off;
+    else if (s?.error) state.textContent = m.portError(s.port, s.error);
+    else if (s?.viewers) state.textContent = m.connected(s.devices.join(", "));
+    else if (s?.running) state.textContent = m.waiting(s.port);
+    else state.textContent = m.starting;
+  };
+
+  const refresh = async () => describe(await Bridge.remoteStatus());
+
+  const hidePairing = () => {
+    shown = false;
+    clear(pairing);
+  };
+
+  const showPairing = async () => {
+    clear(feedback);
+    try {
+      const p = await Bridge.remotePairing();
+      shown = true;
+      clear(pairing);
+      const qr = h("div", { class: "qr" });
+      // Generated locally by Rust from our own pairing code, never from outside input.
+      qr.innerHTML = p.qrSvg;
+      const code = h("input", { type: "text", value: p.code, readonly: "true", style: "flex:1 1 auto;min-width:0" }) as HTMLInputElement;
+      const copy = h("button", { text: m.copy });
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(p.code);
+          copy.textContent = m.copied;
+        } catch {
+          code.select();
+        }
+      });
+      pairing.append(
+        h("div", { class: "hint", text: m.scanHint }),
+        qr,
+        h("div", { class: "row" }, code, copy),
+        h("div", { class: "hint", text: m.hostsHint(p.hosts.join(", ")) }),
+        h("div", { class: "row" }, h("button", { text: m.hide, onclick: hidePairing })),
+      );
+    } catch (err) {
+      feedback.append(h("div", { class: "notice err", text: m.codeFailed(String(err).replace(/^Error:\s*/, "")) }));
+    }
+  };
+
+  const pairBtn = h("button", { class: "primary", text: m.pair, onclick: () => void showPairing() });
+  const forgetBtn = h("button", {
+    class: "danger",
+    text: m.forget,
+    onclick: async () => {
+      clear(feedback);
+      try {
+        await Bridge.remoteForget();
+        if (shown) await showPairing();
+        feedback.append(h("div", { class: "notice ok", text: m.forgotten }));
+      } catch (err) {
+        feedback.append(h("div", { class: "notice err", text: m.forgetFailed(String(err)) }));
+      }
+      await refresh();
+    },
+  });
+  const actions = h("div", { class: "row" }, pairBtn, forgetBtn);
+
+  const sync = () => {
+    actions.style.display = settings.remoteEnabled ? "" : "none";
+    if (!settings.remoteEnabled) hidePairing();
+  };
+
+  body.append(
+    h("div", {
+      class: "hint",
+      text: m.intro,
+    }),
+    h("div", { class: "row" },
+      h("label", { text: m.allow }),
+      toggle(settings.remoteEnabled, (v) => {
+        settings.remoteEnabled = v;
+        sync();
+        void save().then(() => window.setTimeout(() => void refresh(), 300));
+      }),
+      state,
+    ),
+    actions,
+    pairing,
+    feedback,
+  );
+  sync();
+  void refresh();
+  remoteListener = describe;
+
+  return h("section", {}, h("h2", {}, dot, h("span", { text: "iPad" })), body);
+}
+
 // ── General section ───────────────────────────────────────────────────────────
 
 function generalSection(): HTMLElement {
@@ -489,6 +599,7 @@ function render() {
     claudeSection(loaded.status),
     apiSection(loaded.hasKey),
     integrationsSection(loaded.present),
+    ipadSection(),
     generalSection(),
     h("div", {
       class: "hint",
@@ -519,6 +630,8 @@ async function main() {
 
   loaded = { status, hasKey, present };
   render();
+
+  void onEvent<RemoteStatus>("remote-changed", (s) => remoteListener?.(s));
 
   void onEvent<Settings>("settings-changed", (s) => {
     const dockBefore = `${settings.dock}`;

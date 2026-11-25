@@ -145,6 +145,8 @@ export interface Settings {
   dockX: number;
   dockY: number;
   dockMonitor: string;
+  /** A paired iPad may connect over the local network. Off by default. */
+  remoteEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -165,6 +167,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dockX: 0.5,
   dockY: 0,
   dockMonitor: "",
+  remoteEnabled: false,
 };
 
 type Listener = () => void;

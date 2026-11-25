@@ -248,6 +248,11 @@ export async function refreshSessions(force = false) {
 
 export function registerHookHandlers(island: Island) {
   void refreshSessions(true);
+  // Answered somewhere else (the iPad), or handed to the terminal: the card goes.
+  // A request this island answered itself is already out of the queue.
+  void onEvent<{ requestId: string }>("approval-resolved", ({ requestId }) =>
+    expireApproval(island, requestId),
+  );
   // The first scan of the transcripts can take a moment; do it before it is asked for.
   void refreshUsage(true);
   void onEvent<HookPayload>("hook", (payload) => handleHook(island, payload));

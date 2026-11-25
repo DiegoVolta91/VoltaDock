@@ -265,3 +265,15 @@ select option {
   background: rgba(245, 165, 36, 0.13);
   color: #fbc06a;
 }
+
+.qr {
+  align-self: flex-start;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  line-height: 0;
+}
+.qr svg {
+  width: 220px;
+  height: 220px;
+}

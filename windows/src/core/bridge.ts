@@ -113,6 +113,13 @@ export const Bridge = {
   /** "Nobody can act on this" — Claude Code asks in the terminal right away. */
   approvalDecline: (requestId: string) => call<void>("approval_decline", { requestId }),
 
+  // ── iPad ───────────────────────────────────────────────────────────────────
+  remoteStatus: () => call<RemoteStatus>("remote_status"),
+  /** The pairing secret, as text and QR code. Only on an explicit click. */
+  remotePairing: () => callOrThrow<RemotePairing>("remote_pairing"),
+  /** New key: every paired iPad is disconnected. */
+  remoteForget: () => callOrThrow<void>("remote_forget"),
+
   // ── Chat, files, secrets ──────────────────────────────────────────────────
   /** One chat turn. The API key and any file bytes never leave Rust. */
   chatSend: (query: string, context: ChatContext | null) =>
@@ -184,6 +191,21 @@ export interface RecentSessionDto {
   status: "working" | "finished";
   detail: string;
   lastSeen: number;
+}
+
+export interface RemoteStatus {
+  running: boolean;
+  port: number;
+  viewers: number;
+  devices: string[];
+  paired: boolean;
+  error: string | null;
+}
+
+export interface RemotePairing {
+  code: string;
+  qrSvg: string;
+  hosts: string[];
 }
 
 export interface HookStatus {

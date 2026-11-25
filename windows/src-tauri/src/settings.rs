@@ -42,6 +42,9 @@ pub struct Settings {
     /// Free dock: name Windows gives the display it was dropped on.
     #[serde(default)]
     pub dock_monitor: String,
+    /// Lets a paired iPad connect over the local network (remote.rs). Off by default.
+    #[serde(default)]
+    pub remote_enabled: bool,
 }
 
 fn default_dock() -> String {
@@ -74,6 +77,7 @@ impl Default for Settings {
             hooks_installed: false,
             model: default_model(),
             projects_root: String::new(),
+            remote_enabled: false,
             language: default_language(),
             dock: default_dock(),
             dock_x: 0.5,
