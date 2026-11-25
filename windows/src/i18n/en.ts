@@ -292,6 +292,8 @@ export const en: Messages = {
       sound: "Sound",
       autoClose: "Auto-close",
       autoCloseHint: "seconds after you leave the island",
+      docpack: "Analyze Office files",
+      docpackHint: "Word, Excel and PowerPoint are read on your PC with docpack before being sent to Claude",
       screen: "Island lives on",
       screenPrimary: "Main display",
       screenCursor: "Display under the cursor",

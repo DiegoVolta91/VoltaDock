@@ -75,6 +75,7 @@ pub async fn send(
     model: &str,
     query: String,
     context: Option<ChatContext>,
+    docpack: bool,
 ) -> Result<ChatReply, String> {
     let key = secrets::get("anthropic-api-key")
         .ok_or_else(|| crate::i18n::m().api_key_missing.to_string())?;
@@ -86,7 +87,14 @@ pub async fn send(
     if chat.is_empty() {
         match &context {
             Some(ChatContext::File { name, path }) => {
-                if let Some(block) = file_block(path) {
+                // Reading a file (and running docpack on it) can take seconds:
+                // keep it off the async runtime.
+                let owned = path.clone();
+                let block = tokio::task::spawn_blocking(move || file_block(&owned, docpack))
+                    .await
+                    .ok()
+                    .flatten();
+                if let Some(block) = block {
                     content.push(block);
                 }
                 content.push(json!({ "type": "text", "text": format!("File: {name}") }));
@@ -194,7 +202,7 @@ async fn call(key: &str, body: &Value) -> Result<Value, String> {
 
 /// PDF → document block, image → image block, text/code → inline text.
 /// Mirrors readFileAsBlock() in ClaudeService.swift.
-fn file_block(path: &str) -> Option<Value> {
+fn file_block(path: &str, docpack: bool) -> Option<Value> {
     let ext = std::path::Path::new(path)
         .extension()
         .and_then(|e| e.to_str())
@@ -216,6 +224,16 @@ fn file_block(path: &str) -> Option<Value> {
             "type": block_type,
             "source": { "type": "base64", "media_type": media, "data": base64(&bytes) },
         }));
+    }
+
+    // Word, Excel and PowerPoint are zip archives: sent as text they are noise.
+    // docpack turns them into Markdown and CSV; without it they are skipped.
+    if crate::docpack::supports(&ext) {
+        return if docpack {
+            crate::docpack::analyze(path).map(|text| json!({ "type": "text", "text": text }))
+        } else {
+            None
+        };
     }
 
     let len = std::fs::metadata(path).ok()?.len();

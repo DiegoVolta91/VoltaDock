@@ -297,6 +297,8 @@ export const es = {
       sound: "Sonido",
       autoClose: "Cierre automático",
       autoCloseHint: "segundos después de salir de la isla",
+      docpack: "Analizar archivos de Office",
+      docpackHint: "Word, Excel y PowerPoint se leen en tu PC con docpack antes de enviarse a Claude",
       screen: "La isla vive en",
       screenPrimary: "Pantalla principal",
       screenCursor: "Pantalla bajo el cursor",

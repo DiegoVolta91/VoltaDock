@@ -147,6 +147,8 @@ export interface Settings {
   dockMonitor: string;
   /** A paired iPad may connect over the local network. Off by default. */
   remoteEnabled: boolean;
+  /** Office files are read with docpack before they go to Claude. */
+  docpackEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -168,6 +170,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dockY: 0,
   dockMonitor: "",
   remoteEnabled: false,
+  docpackEnabled: true,
 };
 
 type Listener = () => void;
