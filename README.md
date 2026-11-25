@@ -69,6 +69,13 @@ flags the unsigned installer as malware; a false-positive report is under review
 at Microsoft and the installer will come back once it is cleared and signed.
 Until then you can [build it from source](#build-from-source).
 
+#### Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). Only installers built by GitHub
+Actions from this repository are signed, each one approved by hand. Roles and
+details: [code signing policy](https://diegovolta91.github.io/coucou/code-signing.html).
+
 There is no notch on a PC, so the island slides out of the top edge of the screen
 instead of hiding inside one. See [`windows/README.md`](windows/README.md) for the
 rest of the differences.
@@ -155,6 +162,6 @@ Inspired by the notch-companion concepts shared by design studios — this proje
 
 **If Mochi made you smile, a ⭐ helps a lot.**
 
-[Website](https://diegovolta91.github.io/coucou/) · [Privacy](https://diegovolta91.github.io/coucou/privacy.html) · [Terms](https://diegovolta91.github.io/coucou/terms.html) · [Support](https://diegovolta91.github.io/coucou/support.html)
+[Website](https://diegovolta91.github.io/coucou/) · [Privacy](https://diegovolta91.github.io/coucou/privacy.html) · [Terms](https://diegovolta91.github.io/coucou/terms.html) · [Support](https://diegovolta91.github.io/coucou/support.html) · [Code signing policy](https://diegovolta91.github.io/coucou/code-signing.html)
 
 </div>
