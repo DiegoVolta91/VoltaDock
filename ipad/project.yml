@@ -60,5 +60,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.diegovolta91.VoltaDock.iPadTests
+        # The app's product name is VoltaDock, not the target name XcodeGen assumes.
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/VoltaDock.app/VoltaDock
+        BUNDLE_LOADER: $(TEST_HOST)
         GENERATE_INFOPLIST_FILE: YES
         TARGETED_DEVICE_FAMILY: "2"
