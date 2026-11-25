@@ -62,6 +62,7 @@ iPad → desktop:
 | `ack`      | `request_id`                             | the approval card is on the iPad screen   |
 | `decision` | `request_id`, `decision` (`allow`/`deny`)| a human tapped                            |
 | `refresh`  |                                          | send `sessions` again                     |
+| `today_cmd`| `action`, `id?`, `text?`, `goal?`        | Hoy command: `focus_start`, `focus_pause`, `focus_resume`, `focus_stop`, `rest_start`, `toggle`, `remove`, `add` |
 | `ping`     |                                          | keep-alive                                |
 
 Desktop → iPad:
@@ -71,6 +72,7 @@ Desktop → iPad:
 | `welcome`  | `host`, `version`, `pending[]`, `sessions[]`          | answer to `hello`: current state             |
 | `hook`     | `event` (trimmed Claude Code hook payload)            | every hook event, as the island sees it      |
 | `resolved` | `request_id`, `decision` (`allow`/`deny`/`null`)      | a request was answered or went to terminal   |
+| `today`    | `state`                                               | Hoy snapshot (also in `welcome` as `today`)   |
 | `sessions` | `sessions[]` (`id`, `cwd`, `status`, `detail`, `lastSeen`) | recent conversations from the transcripts |
 | `ping`     |                                                       | keep-alive                                   |
 
@@ -81,3 +83,18 @@ characters.
 
 Permission requests carry `request_id`. Each request is answered once, by
 whoever taps first; the other screen gets `resolved` and drops its card.
+
+## Hoy (focus, goals, reminders)
+
+The island's webview owns the Hoy data. Every change is handed to the
+desktop's Rust side (`today_publish`), which keeps the last snapshot and sends
+it as `today` to every iPad (and in `welcome`). A snapshot is `now` (desktop
+clock, ms), `focus` (`phase`, `endsAt` ms or null, `pausedRemaining`,
+`duration`), `blocksToday` and `items[]` (`id`, `text`, `dueAt` ms or null,
+`done`, `goal`, `fired`). The iPad runs the countdown itself from `endsAt`,
+corrected by the `now` offset.
+
+A `today_cmd` from the iPad is forwarded to the webview, which applies it and
+publishes the new snapshot. The iPad also schedules local notifications from
+each snapshot (reminders and the end of a focus block or break), so they go off
+even when it is away from the home network; they are replaced at the next sync.

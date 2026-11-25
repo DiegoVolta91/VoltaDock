@@ -51,6 +51,9 @@ final class AppModel {
     private(set) var sessions: [SessionRow] = []
     private(set) var activity: [ActivityItem] = []
     private(set) var lastFinished: Date?
+    private(set) var today: TodaySnapshot?
+    /// Desktop clock minus this iPad's clock, in seconds, when `today` arrived.
+    private(set) var clockOffset: TimeInterval = 0
     var pairingError: String?
 
     /// Fake data for screenshots and previews (launch argument `-demo`).
@@ -100,6 +103,8 @@ final class AppModel {
         approvals = []
         sessions = []
         activity = []
+        today = nil
+        TodayNotifications.clear()
         link = .unpaired
     }
 
@@ -210,6 +215,9 @@ final class AppModel {
             approvals = []
             for event in msg.pending ?? [] { addApproval(event) }
             if let s = msg.sessions { merge(s) }
+            if let t = msg.today { setToday(t) }
+        case "today":
+            if let t = msg.state { setToday(t) }
         case "sessions":
             if let s = msg.sessions { merge(s) }
         case "hook":
@@ -219,6 +227,57 @@ final class AppModel {
         default:
             break
         }
+    }
+
+    // MARK: Hoy
+
+    private func setToday(_ t: TodaySnapshot) {
+        today = t
+        clockOffset = t.now / 1000 - Date().timeIntervalSince1970
+        TodayNotifications.schedule(t, offset: clockOffset)
+    }
+
+    /// Focus time left, on this iPad's clock.
+    func focusRemaining(at date: Date = .now) -> TimeInterval {
+        guard let f = today?.focus, f.phase != "idle" else { return 0 }
+        if let end = f.endsAt { return max(0, end / 1000 - clockOffset - date.timeIntervalSince1970) }
+        return max(0, (f.pausedRemaining ?? 0) / 1000)
+    }
+
+    func startFocus() { sendToday("focus_start") }
+    func pauseFocus() { sendToday("focus_pause") }
+    func resumeFocus() { sendToday("focus_resume") }
+    func stopFocus() { sendToday("focus_stop") }
+    func startRest() { sendToday("rest_start") }
+    func toggle(_ item: TodayItemDTO) { sendToday("toggle", id: item.id) }
+    func remove(_ item: TodayItemDTO) { sendToday("remove", id: item.id) }
+    func addToday(_ text: String, goal: Bool) { sendToday("add", text: text, goal: goal) }
+
+    private func sendToday(_ action: String, id: String? = nil, text: String? = nil, goal: Bool? = nil) {
+        if demo { applyDemo(action, id: id, text: text, goal: goal); return }
+        send(.today(action, id: id, text: text, goal: goal))
+    }
+
+    private func applyDemo(_ action: String, id: String?, text: String?, goal: Bool?) {
+        guard var t = today else { return }
+        let now = Date().timeIntervalSince1970 * 1000
+        switch action {
+        case "focus_start": t.focus = FocusDTO(phase: "focus", endsAt: now + 25 * 60_000, pausedRemaining: nil, duration: 25 * 60_000)
+        case "rest_start": t.focus = FocusDTO(phase: "rest", endsAt: now + 5 * 60_000, pausedRemaining: nil, duration: 5 * 60_000)
+        case "focus_pause":
+            t.focus.pausedRemaining = max(0, (t.focus.endsAt ?? now) - now); t.focus.endsAt = nil
+        case "focus_resume":
+            t.focus.endsAt = now + (t.focus.pausedRemaining ?? 0); t.focus.pausedRemaining = nil
+        case "focus_stop": t.focus = FocusDTO(phase: "idle", endsAt: nil, pausedRemaining: nil, duration: 0)
+        case "toggle": if let i = t.items.firstIndex(where: { $0.id == id }) { t.items[i].done.toggle() }
+        case "remove": t.items.removeAll { $0.id == id }
+        case "add":
+            if let text, !text.isEmpty {
+                t.items.append(TodayItemDTO(id: UUID().uuidString, text: text, dueAt: nil, done: false, goal: goal ?? false, fired: false))
+            }
+        default: break
+        }
+        today = t
     }
 
     private func merge(_ found: [RecentSession]) {
@@ -428,6 +487,18 @@ final class AppModel {
             SessionRow(id: "s3", project: "facturas", cwd: "C:\\dev\\facturas", status: "finished",
                        detail: "Listo: exporta el CSV por mes", lastSeen: now.addingTimeInterval(-3600)),
         ]
+        let ms = now.timeIntervalSince1970 * 1000
+        today = TodaySnapshot(
+            now: ms,
+            focus: FocusDTO(phase: "focus", endsAt: ms + 18 * 60_000 + 32_000, pausedRemaining: nil, duration: 25 * 60_000),
+            blocksToday: 2,
+            items: [
+                TodayItemDTO(id: "g1", text: "Terminar el PR del iPad", dueAt: nil, done: true, goal: true, fired: false),
+                TodayItemDTO(id: "g2", text: "Enviar la factura de noviembre", dueAt: nil, done: false, goal: true, fired: false),
+                TodayItemDTO(id: "g3", text: "Revisar los textos de la web", dueAt: nil, done: false, goal: true, fired: false),
+                TodayItemDTO(id: "r1", text: "Llamar a Ana", dueAt: ms + 3_600_000, done: false, goal: false, fired: false),
+            ]
+        )
         activity = [
             ActivityItem(at: now, project: "coucou", text: "Pide permiso: npm run build && npx tauri build", symbol: "hand.raised.fill"),
             ActivityItem(at: now.addingTimeInterval(-20), project: "volt-site", text: "Edita · index.html", symbol: "bolt.fill"),

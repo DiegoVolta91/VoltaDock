@@ -5,6 +5,7 @@
 import { parseQuickAdd } from "./quickadd";
 import { tr } from "../i18n";
 import { State } from "./state";
+import { Bridge, onEvent } from "./bridge";
 
 export interface TodayItem {
   id: string;
@@ -145,6 +146,10 @@ class TodayStore {
     this.host = host;
     // A timer that slept with the PC fires late; coming back to the screen is
     // another good moment to look.
+    // The iPad app shows and drives Hoy: it sends commands, we apply them and
+    // publish the result (every save publishes).
+    void onEvent<Record<string, unknown>>("remote-today-cmd", (m) => this.remoteCommand(m));
+    this.publish();
     document.addEventListener("visibilitychange", () => this.check());
     window.addEventListener("focus", () => this.check());
     this.check();
@@ -436,6 +441,40 @@ class TodayStore {
     write(ITEMS_KEY, this.items);
     write(FOCUS_KEY, this.focus);
     write(BLOCKS_KEY, this.blocksByDay);
+    this.publish();
+  }
+
+  /** What a paired iPad needs to draw Hoy; it runs the countdown itself from endsAt. */
+  snapshot() {
+    return {
+      now: Date.now(),
+      focus: this.focus,
+      blocksToday: this.blocksToday,
+      items: this.items.slice(0, 60).map((i) => ({
+        id: i.id, text: i.text, dueAt: i.dueAt, done: i.done, goal: !!i.goal, fired: i.firedAt != null,
+      })),
+    };
+  }
+
+  private publish() {
+    void Bridge.todayPublish(this.snapshot());
+  }
+
+  /** A command from the iPad (already authenticated by the encrypted link). */
+  private remoteCommand(m: Record<string, unknown>) {
+    const id = typeof m.id === "string" ? m.id : "";
+    switch (m.action) {
+      case "focus_start": this.startFocus(); break;
+      case "focus_pause": this.pause(); break;
+      case "focus_resume": this.resume(); break;
+      case "focus_stop": this.stopFocus(); break;
+      case "rest_start": this.startRest(); break;
+      case "toggle": this.toggleDone(id); break;
+      case "remove": this.remove(id); break;
+      case "add":
+        if (typeof m.text === "string") this.add(m.text.slice(0, 200), m.goal === true);
+        break;
+    }
   }
 }
 

@@ -145,6 +145,36 @@ struct RecentSession: Codable, Sendable, Equatable {
     var lastSeen: Double
 }
 
+// MARK: - Hoy (focus, goals, reminders)
+
+struct TodayItemDTO: Codable, Sendable, Equatable, Identifiable {
+    var id: String
+    var text: String
+    /// Epoch ms; nil = a plain to-do.
+    var dueAt: Double?
+    var done: Bool
+    var goal: Bool
+    var fired: Bool?
+}
+
+struct FocusDTO: Codable, Sendable, Equatable {
+    /// idle, focus, rest
+    var phase: String
+    /// Epoch ms of the desktop clock; nil while paused or idle.
+    var endsAt: Double?
+    var pausedRemaining: Double?
+    var duration: Double
+}
+
+/// The island's Hoy state. `now` is the desktop clock when it was sent, so the
+/// iPad can correct for a clock that is a little off.
+struct TodaySnapshot: Codable, Sendable, Equatable {
+    var now: Double
+    var focus: FocusDTO
+    var blocksToday: Int
+    var items: [TodayItemDTO]
+}
+
 /// Everything the desktop app may send; `type` says which fields are set.
 struct Incoming: Decodable, Sendable {
     var type: String
@@ -155,6 +185,9 @@ struct Incoming: Decodable, Sendable {
     var event: HookEvent?
     var request_id: String?
     var decision: String?
+    /// `welcome` (may be null) and `today`.
+    var today: TodaySnapshot?
+    var state: TodaySnapshot?
 }
 
 struct Outgoing: Encodable, Sendable {
@@ -163,6 +196,15 @@ struct Outgoing: Encodable, Sendable {
     var version: String? = nil
     var request_id: String? = nil
     var decision: String? = nil
+    var action: String? = nil
+    var id: String? = nil
+    var text: String? = nil
+    var goal: Bool? = nil
+
+    /// A Hoy command; the desktop applies it and answers with a new `today`.
+    static func today(_ action: String, id: String? = nil, text: String? = nil, goal: Bool? = nil) -> Outgoing {
+        Outgoing(type: "today_cmd", action: action, id: id, text: text, goal: goal)
+    }
 
     static func hello(device: String, version: String) -> Outgoing {
         Outgoing(type: "hello", device: device, version: version)
