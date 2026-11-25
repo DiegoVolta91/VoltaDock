@@ -304,6 +304,11 @@ struct UploadCanvasView: View {
 
         let (bp, rx, ry) = usBodyPath(m: m, R: R)
 
+        // ── Cap and bolt, fading out as Volt turns into the box ────
+        Volt.drawAntenna(c, hw: CGFloat(rx), hh: CGFloat(ry),
+                         style: Volt.AntennaStyle(color: Volt.amberDim, sway: CGFloat(-f.tilt * 0.8),
+                                                  alpha: CGFloat(1 - mc * 2)))
+
         // ── Body gradient ──────────────────────────────────────────
         let bodyGrad = Gradient(stops:[
             .init(color: Color(hex:"#EDEDEF"), location:0),
@@ -361,11 +366,19 @@ struct UploadCanvasView: View {
             }
         }
 
+        // ── Charge bar, gone once the box is open ──────────────────
+        if mc < 0.34 {
+            var barCtx = c
+            barCtx.clip(to: bp)
+            Volt.drawChargeBar(barCtx, hw: CGFloat(rx), hh: CGFloat(ry), level: 0.5,
+                               color: Volt.amber, alpha: CGFloat(1 - mc * 3))
+        }
+
         // ── Eyes ───────────────────────────────────────────────────
-        let ew = R * 0.25
-        let eh = R * (0.62 - 0.16*mc)
-        let ey = R * (0.02 + 0.28*mc)
-        let sp = R * 0.30
+        let ew = R * 0.22
+        let eh = R * (0.46 - 0.1*mc)
+        let ey = R * (-0.3 + 0.6*mc)
+        let sp = R * 0.26
         let lx = f.lookX * R * (0.34 - 0.08*mc)
         let ly = f.lookY * R * (0.16 - 0.09*mc)
 
@@ -554,21 +567,14 @@ private func drawDocCG(cg: CGContext, cx: Double, cy: Double, wsc: Double, hsc: 
 
 // MARK: - Superellipse body path (port of reference bodyPath(m, R))
 
+/// Volt's battery case, widening into the upload box as `m` goes 0 → 1.
 func usBodyPath(m: Double, R: Double) -> (path: Path, rx: Double, ry: Double) {
     let mc = max(0, min(m, 1.0))
-    let n  = 2.15 + (5.5-2.15)*mc
-    let rx = R * (1.04 - 0.04*mc)
+    let rx = R * ((Double(Volt.hw / Volt.hh) * 0.97) * (1 - mc) + 1.0 * mc)
     let ry = R * (0.97 - 0.03*mc)
-    var path = Path()
-    for i in 0...96 {
-        let a  = Double(i)/96 * .pi*2
-        let ca = cos(a), sa = sin(a)
-        let px = rx * (ca<0 ? -1 : ca>0 ? 1 : 0) * pow(abs(ca), 2/n)
-        let py = ry * (sa<0 ? -1 : sa>0 ? 1 : 0) * pow(abs(sa), 2/n)
-        if i == 0 { path.move(to:    CGPoint(x:px,y:py)) }
-        else       { path.addLine(to: CGPoint(x:px,y:py)) }
-    }
-    path.closeSubpath()
+    let r  = min(rx, ry) * (Double(Volt.corner) * (1 - mc) + 0.22 * mc)
+    let path = Path(roundedRect: CGRect(x: -rx, y: -ry, width: rx*2, height: ry*2),
+                    cornerSize: CGSize(width: r, height: r), style: .continuous)
     return (path, rx, ry)
 }
 

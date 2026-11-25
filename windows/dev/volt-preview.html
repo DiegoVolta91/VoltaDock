@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>VoltaDock — Volt preview</title>
+    <style>
+      body { margin: 0; background: #1b1b1f; font: 12px system-ui; color: #ddd; }
+      #grid { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px; }
+      figure { margin: 0; display: grid; justify-items: center; gap: 4px; background: #000; border-radius: 14px; padding: 8px; }
+      #greet { display: block; margin: 0 16px; background: #000; border-radius: 22px; }
+    </style>
+  </head>
+  <body>
+    <div id="grid"></div>
+    <canvas id="greet" width="640" height="150"></canvas>
+    <script type="module" src="./volt-preview.ts"></script>
+  </body>
+</html>
