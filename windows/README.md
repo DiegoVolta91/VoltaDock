@@ -46,8 +46,9 @@ installs for the current user only — no admin prompt.
 | Click Mochi | It gets annoyed. Three times in a row and it goes dizzy |
 | Rest the pointer on Mochi for two seconds | Hearts |
 | Drag a file onto the island | Mochi turns into a box, swallows it, then offers to answer questions about it |
+| Press on the island (not on a button) and drag | It moves anywhere, on any display, and stays there. In the lower half of a display it opens upwards; dropped against the top edge it sticks to it |
 | `Esc` | Closes the island |
-| Tray icon | Open, Settings…, Pause, Quit |
+| Tray icon | Open, Settings…, Back to top centre, Pause, Quit |
 
 Everything else happens on its own: a Claude Code permission request opens the
 island with **Deny / Allow**, a finished session shows what it did, and
@@ -141,7 +142,9 @@ problems. It stays on your machine.
 ## What's different from the Mac version
 
 - No notch, so the island lives at the top centre of the screen and retracts into
-  the top edge instead of hiding in a notch.
+  the top edge instead of hiding in a notch. It can also be dragged anywhere; away
+  from the top edge it sleeps as a small black handle. Settings and the tray menu
+  bring it back to the top centre.
 - Permission approval works from **any** terminal; the Mac build only listens to
   VS Code sessions.
 - Not in this version: sending a file by email, dragging Mochi onto a window to

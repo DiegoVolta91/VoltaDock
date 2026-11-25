@@ -27,6 +27,25 @@ pub struct Settings {
     /// Interface language: "es" (default), "en", or "system" to follow Windows.
     #[serde(default = "default_language")]
     pub language: String,
+    /// Where the island sits: "top" = top centre of the display picked by
+    /// `screen` (the default, like the notch), "free" = wherever the user dragged it.
+    #[serde(default = "default_dock")]
+    pub dock: String,
+    /// Free dock: the island's anchor as fractions (0..1) of the display's work
+    /// area. The anchor is the middle of the edge the island grows from — its top
+    /// edge in the upper half of the display, its bottom edge in the lower half.
+    /// Fractions survive a resolution or scale change.
+    #[serde(default)]
+    pub dock_x: f64,
+    #[serde(default)]
+    pub dock_y: f64,
+    /// Free dock: name Windows gives the display it was dropped on.
+    #[serde(default)]
+    pub dock_monitor: String,
+}
+
+fn default_dock() -> String {
+    "top".into()
 }
 
 fn default_language() -> String {
@@ -56,6 +75,10 @@ impl Default for Settings {
             model: default_model(),
             projects_root: String::new(),
             language: default_language(),
+            dock: default_dock(),
+            dock_x: 0.5,
+            dock_y: 0.0,
+            dock_monitor: String::new(),
         }
     }
 }

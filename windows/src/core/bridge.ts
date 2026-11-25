@@ -48,6 +48,17 @@ export const Bridge = {
 
   reposition: () => call<void>("reposition"),
 
+  /**
+   * A press on the island. Rust watches the button: past a few pixels of travel
+   * the window follows the pointer, and the drop becomes the island's place.
+   * Answers with a `dock-drag` event: "start", then "end" — or "click" when the
+   * button came up without a move.
+   */
+  beginDockDrag: () => call<void>("begin_dock_drag"),
+
+  /** Puts the island back at the top centre of the display. */
+  resetDock: () => call<void>("reset_dock"),
+
   openUrl: (url: string) => call<void>("open_url", { url }),
 
   /** "Open terminal" → opens the folder in VS Code when `code` is on PATH. */

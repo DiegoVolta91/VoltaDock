@@ -1,4 +1,4 @@
-// Notification-area icon: Open, Focus, Settings, Pause, Quit.
+// Notification-area icon: Open, Focus, Settings, Back to top centre, Pause, Quit.
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -14,11 +14,12 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let open = MenuItem::with_id(app, "open", t.tray_open, true, None::<&str>)?;
     let focus = MenuItem::with_id(app, "focus", t.tray_focus, true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", t.tray_settings, true, None::<&str>)?;
+    let dock = MenuItem::with_id(app, "dock-reset", t.tray_dock_reset, true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", t.tray_pause, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", t.tray_quit, true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    Menu::with_items(app, &[&open, &focus, &sep1, &settings, &pause, &sep2, &quit])
+    Menu::with_items(app, &[&open, &focus, &sep1, &settings, &dock, &pause, &sep2, &quit])
 }
 
 /// Swaps in a menu in the language now in use.
@@ -37,6 +38,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app: &AppHandle, event| match event.id.as_ref() {
             "quit" => app.exit(0),
             "settings" => crate::show_settings_window(app),
+            "dock-reset" => crate::island::reset_dock(app),
             id => {
                 let _ = app.emit_to(WINDOW_LABEL, "tray", id.to_string());
             }
