@@ -74,7 +74,7 @@ Until then you can [build it from source](#build-from-source).
 Free code signing provided by [SignPath.io](https://signpath.io), certificate by
 [SignPath Foundation](https://signpath.org). Only installers built by GitHub
 Actions from this repository are signed, each one approved by hand. Roles and
-details: [code signing policy](https://diegovolta91.github.io/coucou/code-signing.html).
+details: [code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html).
 
 There is no notch on a PC, so the island slides out of the top edge of the screen
 instead of hiding inside one. See [`windows/README.md`](windows/README.md) for the
@@ -162,6 +162,6 @@ Inspired by the notch-companion concepts shared by design studios — this proje
 
 **If Mochi made you smile, a ⭐ helps a lot.**
 
-[Website](https://diegovolta91.github.io/coucou/) · [Privacy](https://diegovolta91.github.io/coucou/privacy.html) · [Terms](https://diegovolta91.github.io/coucou/terms.html) · [Support](https://diegovolta91.github.io/coucou/support.html) · [Code signing policy](https://diegovolta91.github.io/coucou/code-signing.html)
+[Website](https://diegovolta91.github.io/VoltaDock/) · [Privacy](https://diegovolta91.github.io/VoltaDock/privacy.html) · [Terms](https://diegovolta91.github.io/VoltaDock/terms.html) · [Support](https://diegovolta91.github.io/VoltaDock/support.html) · [Code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html)
 
 </div>
