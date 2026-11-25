@@ -534,6 +534,8 @@ function generalSection(): HTMLElement {
     h("option", { value: "cursor", text: tr.settings.general.screenCursor }),
   );
   screen.value = settings.screen;
+  // A free dock stays on the display it was dropped on.
+  screen.disabled = settings.dock === "free";
   screen.addEventListener("change", () => {
     settings.screen = screen.value as Settings["screen"];
     void save();
@@ -556,6 +558,15 @@ function generalSection(): HTMLElement {
       h("label", { text: tr.settings.general.autoClose }),
       autoClose,
       h("span", { class: "hint", text: tr.settings.general.autoCloseHint }),
+    ),
+    h("div", { class: "row" },
+      h("label", { text: tr.settings.general.dock }),
+      h("span", {
+        text: settings.dock === "free" ? tr.settings.general.dockFree : tr.settings.general.dockTop,
+      }),
+      settings.dock === "free"
+        ? h("button", { text: tr.settings.general.dockReset, onclick: () => void Bridge.resetDock() })
+        : h("span", { class: "hint", text: tr.settings.general.dockHint }),
     ),
     h("div", { class: "row" },
       h("label", { text: tr.settings.general.screen }),
@@ -623,9 +634,12 @@ async function main() {
   void onEvent<RemoteStatus>("remote-changed", (s) => remoteListener?.(s));
 
   void onEvent<Settings>("settings-changed", (s) => {
+    const dockBefore = `${settings.dock}`;
     settings = { ...settings, ...s };
     if (setLanguage(settings.language)) {
       void refreshLoaded().then(render);
+    } else if (settings.dock !== dockBefore) {
+      render();
     }
   });
 }

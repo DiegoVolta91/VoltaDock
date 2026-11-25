@@ -1,8 +1,34 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Code signing policy — VoltaDock</title><link rel="icon" href="media/icon.png"><link rel="stylesheet" href="site.css"></head><body><div class="wrap">
+<!doctype html><html lang="en" data-lang="en" data-default-lang="en" data-title-es="Política de firma de código — VoltaDock" data-title-en="Code signing policy — VoltaDock"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code signing policy — VoltaDock</title><meta name="description" content="VoltaDock: Volt, un pequeño compañero en la parte de arriba de tu pantalla que sigue tus sesiones de Claude Code. / A tiny friend at the top of your screen that keeps an eye on your Claude Code sessions.">
+<link rel="icon" href="media/icon.png"><link rel="stylesheet" href="site.css"><script src="lang.js"></script></head><body><div class="wrap">
 <header><a href="index.html"><img src="media/icon.png" alt=""></a><span class="name">VoltaDock</span>
-<nav><a href="index.html">Home</a><a href="support.html">Support</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="legal.html">Legal</a></nav></header>
-<section id="en">
+<div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-set="es" aria-pressed="false">Español</button><button type="button" data-set="en" aria-pressed="true">English</button></div>
+<nav><a href="index.html"><span data-lang="es">Inicio</span><span data-lang="en">Home</span></a><a href="support.html"><span data-lang="es">Ayuda</span><span data-lang="en">Support</span></a><a href="privacy.html"><span data-lang="es">Privacidad</span><span data-lang="en">Privacy</span></a><a href="terms.html"><span data-lang="es">Términos</span><span data-lang="en">Terms</span></a><a href="legal.html"><span data-lang="es">Aviso legal</span><span data-lang="en">Legal</span></a></nav></header>
+<section id="es" data-lang="es">
+<h1>Política de firma de código</h1>
+<div class="meta">Última actualización: 25 de noviembre de 2026</div>
+<div class="card">Firma de código gratuita proporcionada por <a href="https://signpath.io">SignPath.io</a>, certificado de <a href="https://signpath.org">SignPath Foundation</a>.</div>
+
+<h2>Qué se firma</h2>
+<p>El instalador de Windows publicado en la <a href="https://github.com/DiegoVolta91/VoltaDock/releases">página de Releases</a> y los dos programas que instala: la app y <code>coucou-hook.exe</code>, el pequeño intermediario que Claude Code ejecuta en cada evento de hook.</p>
+<p>Todo lo que se firma lo compila <a href="https://github.com/DiegoVolta91/VoltaDock/blob/main/.github/workflows/windows.yml">GitHub Actions</a> a partir del código público de <a href="https://github.com/DiegoVolta91/VoltaDock">github.com/DiegoVolta91/VoltaDock</a>, desde una etiqueta de versión <code>windows-v*</code>. Nunca se firma nada compilado en una computadora personal. Solo se firman binarios compilados a partir del código de este proyecto; los programas de terceros nunca se firman con este certificado.</p>
+
+<h2>Roles del equipo</h2>
+<table>
+<tr><th>Rol</th><th>Quién</th></tr>
+<tr><td>Autores y revisores</td><td><a href="https://github.com/DiegoVolta91">Diego (DiegoVolta91)</a></td></tr>
+<tr><td>Aprobadores</td><td><a href="https://github.com/DiegoVolta91">Diego (DiegoVolta91)</a></td></tr>
+</table>
+<p>Los cambios de cualquier persona fuera del equipo se revisan en un pull request antes de integrarse. Cada solicitud de firma se aprueba a mano, versión por versión. Los miembros del equipo usan autenticación de varios factores en GitHub y en SignPath.</p>
+
+<h2>Privacidad</h2>
+<p>Este programa no transfiere información a otros sistemas en red salvo que lo pida expresamente el usuario o la persona que lo instala u opera. VoltaDock solo habla con los servicios que tú conectas; ver la <a href="privacy.html">política de privacidad</a>.</p>
+
+<h2>Reportar un problema</h2>
+<p>Si crees que un archivo firmado de VoltaDock no se compiló a partir de este repositorio, o encuentras un problema de seguridad, <a href="https://github.com/DiegoVolta91/VoltaDock/issues">abre un issue</a>.</p>
+</section>
+
+<section id="en" data-lang="en">
 <h1>Code signing policy</h1>
 <div class="meta">Last updated: November 25, 2026</div>
 <div class="card">Free code signing provided by <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>.</div>
@@ -25,4 +51,5 @@
 <h2>Reporting a problem</h2>
 <p>If you believe a signed VoltaDock file was not built from this repository, or you find a security issue, <a href="https://github.com/DiegoVolta91/VoltaDock/issues">open an issue</a>.</p>
 </section>
-<footer>© 2026 Diego · VoltaDock is free and open source (MIT), based on Coucou by Louis Raillé · <a href="https://github.com/DiegoVolta91/VoltaDock">GitHub</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="legal.html">Legal notice</a> · <a href="code-signing.html">Code signing policy</a></footer></div></body></html>
+<footer>© 2026 Diego · <span data-lang="es">VoltaDock es libre y de código abierto (MIT). Empezó como fork de Coucou, de Louis Raillé.</span><span data-lang="en">VoltaDock is free and open source (MIT). It started as a fork of Coucou by Louis Raillé.</span> · <a href="https://github.com/DiegoVolta91/VoltaDock">GitHub</a> · <a href="privacy.html"><span data-lang="es">Privacidad</span><span data-lang="en">Privacy</span></a> · <a href="terms.html"><span data-lang="es">Términos</span><span data-lang="en">Terms</span></a> · <a href="legal.html"><span data-lang="es">Aviso legal</span><span data-lang="en">Legal notice</span></a> · <a href="code-signing.html"><span data-lang="es">Firma de código</span><span data-lang="en">Code signing policy</span></a></footer></div>
+</body></html>

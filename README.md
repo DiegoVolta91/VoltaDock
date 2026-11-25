@@ -1,168 +1,174 @@
 <div align="center">
 
-<img src="NotchBuddy/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="96" alt="VoltaDock icon">
+<img src="NotchBuddy/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="96" alt="Ícono de VoltaDock">
 
 # VoltaDock
 
-**A tiny friend that lives in your MacBook's notch — or at the top of your screen on Windows — and keeps an eye on your Claude Code sessions.**
+[English](README.en.md) · **Español**
 
-Approve permissions, watch your agents work, drop a file, chat with Claude — all without leaving what you're doing.
+**Un pequeño compañero que vive en el notch de tu MacBook (o en la parte de arriba de la pantalla en Windows) y vigila tus sesiones de Claude Code.**
+
+Aprueba permisos, mira a tus agentes trabajar, suelta un archivo, chatea con Claude… sin dejar lo que estás haciendo.
 
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-native-0A84FF)
 ![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![GitHub stars](https://img.shields.io/github/stars/DiegoVolta91/coucou?style=social)
+![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)
+![GitHub stars](https://img.shields.io/github/stars/DiegoVolta91/VoltaDock?style=social)
 
-<img src="docs/media/demo.gif" width="760" alt="VoltaDock in action">
+<img src="docs/media/demo.gif" width="720" alt="Volt saluda, sigue una sesión de Claude Code, pide permiso y celebra cuando termina">
+
+<sub>Grabación de la versión de Windows con datos de ejemplo.</sub>
 
 </div>
 
 ---
 
-## Why
+## Por qué
 
-Some studios showed off gorgeous notch companions… and never let anyone use them.
-**VoltaDock is an open one.** Every line of code is free to use, read, fork and remix.
+Algunos estudios presumieron compañeros para el notch preciosos… y nunca dejaron que nadie los usara.
+**VoltaDock es uno abierto.** Cada línea de código se puede usar, leer, bifurcar y remezclar.
 
-Meet **Volt**: a little battery with a lightning-bolt antenna that pops out of your notch, waves hello, follows your cursor with its eyes, gets annoyed when you poke it (and dizzy if you insist). Its charge bar shows how Claude Code is doing, and its bolt sparks the moment Claude needs you.
+Te presento a **Volt**: una pila con antena de rayo que sale del notch, te saluda, sigue tu cursor con los ojos, se enoja cuando le picas (y se marea si insistes). Su barra de carga muestra cómo va Claude Code, y su rayo chispea en cuanto Claude te necesita.
 
-## Features
+## Funciones
 
-- 🤖 **Claude Code, live** — see every session in your notch: what it reads, edits and runs, step by step. Finished? Mochi does a happy little jump.
-- ✅ **Approve from the notch** — Claude Code permission requests show up with **Allow / Deny**. One click, back to work.
-- 🧑‍💻 **Jump to the right terminal** — open the exact terminal window of a session *(macOS)*.
-- 💬 **Ask Claude anything** — built-in chat, straight from the notch.
-- 📎 **Drop a file on the notch** — Mochi turns into a box and swallows it, then ask a question about it or send it by email *(email: macOS, Mail.app)*.
-- 🪟 **Drag Mochi onto any window** — attach that window as context for Claude *(macOS)*.
-- ⏱️ **Today** — a 25-minute focus timer with its countdown under the island, quick to-dos and reminders typed in plain words (“in 10 min stretch”, “tomorrow at 9 dentist”, “a las 17:30 gym”). Reminders that came due while the computer slept show up when it wakes. Everything stays on your machine. Turn the **Today** pill on in Settings.
-- 🔌 **Integrations** — Stripe payments, n8n workflows, GitHub, Vercel deployments, Resend emails, Notion, Cal.com. Each one gets its own little colored Mochi.
-- 🎭 **A real character** — idle breathing, blinks, eyes on a sphere that follow your mouse, emotes, 28 handcrafted sounds, a greeting on launch.
-- 🫥 **Invisible when idle** — hides away when nothing is running, peeks out when you hover the notch (the top edge of the screen on Windows).
-- 🔒 **Private by design** — no telemetry, no account. Keys live in your macOS Keychain or Windows Credential Manager. The app only talks to the services you plug in.
+- 🤖 **Claude Code en vivo**: ve cada sesión en la isla, qué lee, qué edita y qué ejecuta, paso a paso. ¿Terminó? Volt da un saltito de alegría.
+- ✅ **Aprueba desde la isla**: las solicitudes de permiso de Claude Code llegan con **Denegar / Permitir**. Un clic y de vuelta al trabajo.
+- 🧑‍💻 **Salta a la terminal correcta**: abre la ventana exacta de una sesión *(macOS)*.
+- 💬 **Pregúntale lo que sea a Claude**: chat integrado, directo desde la isla.
+- 📎 **Suelta un archivo en la isla**: Volt se convierte en caja y se lo traga; luego pregunta sobre él o envíalo por correo *(correo: macOS, Mail.app)*.
+- 🪟 **Arrastra a Volt sobre cualquier ventana**: la adjunta como contexto para Claude *(macOS)*.
+- ⏱️ **Hoy**: un temporizador de enfoque de 25 minutos con cuenta regresiva bajo la isla, pendientes rápidos y recordatorios escritos como hablas (“en 10 min estirarme”, “mañana a las 9 dentista”, “a las 17:30 gym”). Los recordatorios que vencieron mientras la computadora dormía aparecen al despertar. Todo se queda en tu máquina. Activa la pastilla **Hoy** en Ajustes.
+- 🔌 **Integraciones**: pagos de Stripe, flujos de n8n, GitHub, despliegues de Vercel, correos de Resend, Notion, Cal.com. Cada una tiene su propio mini Volt de color.
+- 📱 **Compañero para iPad** *(en desarrollo)*: ver y aprobar desde un iPad en la misma red Wi-Fi.
+- 🎭 **Un personaje de verdad**: respira, parpadea, sus ojos siguen al mouse, tiene emociones, 28 sonidos y un saludo al arrancar.
+- 🫥 **Invisible cuando no pasa nada**: se esconde cuando nada está corriendo y se asoma cuando pasas el mouse por el notch (el borde superior de la pantalla en Windows).
+- 🔒 **Privado por diseño**: sin telemetría, sin cuenta. Las claves viven en el Llavero de macOS o en el Administrador de credenciales de Windows. La app solo habla con los servicios que tú conectas.
 
 <table>
 <tr>
-<td><img src="docs/media/claude-code.png" alt="Claude Code session"></td>
-<td><img src="docs/media/stripe.png" alt="Stripe payments"></td>
+<td><img src="docs/media/volt-sesion.png" alt="Una sesión de Claude Code con las integraciones al lado"></td>
+<td><img src="docs/media/volt-permiso.png" alt="Una solicitud de permiso de Claude Code"></td>
 </tr>
 <tr>
-<td><img src="docs/media/chat.png" alt="Chat with Claude"></td>
-<td><img src="docs/media/dizzy.png" alt="Too many hits"></td>
+<td><img src="docs/media/volt-chat.png" alt="Chat con Claude"></td>
+<td><img src="docs/media/volt-archivo.png" alt="Volt convertido en caja, esperando un archivo"></td>
 </tr>
 </table>
 
-## Install
+<sub>Capturas reales de la versión de Windows con datos de ejemplo. Las de Mac llegarán pronto.</sub>
 
-### Download for macOS
+## Instalar
 
-1. Grab the latest `VoltaDock.zip` from [Releases](https://github.com/DiegoVolta91/coucou/releases).
-2. Unzip and move **VoltaDock.app** to `/Applications`.
-3. Launch. This build isn't notarized by Apple yet, so the first time macOS says it can't verify the developer: open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** (only once).
+### Descargar para macOS
+
+1. Descarga el último `VoltaDock.zip` desde [Releases](https://github.com/DiegoVolta91/VoltaDock/releases).
+2. Descomprímelo y mueve **VoltaDock.app** a `/Aplicaciones`.
+3. Ábrela. Esta versión todavía no está notarizada por Apple, así que la primera vez macOS dice que no puede verificar al desarrollador: abre **Ajustes del Sistema → Privacidad y seguridad**, baja y haz clic en **Abrir de todos modos** (solo una vez).
 
 ### Windows
 
-The Windows installer is **temporarily unavailable**. Microsoft Defender wrongly
-flags the unsigned installer as malware; a false-positive report is under review
-at Microsoft and the installer will come back once it is cleared and signed.
-Until then you can [build it from source](#build-from-source).
+El instalador de Windows **no está disponible por ahora**. Microsoft Defender marca
+por error el instalador sin firmar como malware; hay un reporte de falso positivo en
+revisión en Microsoft y el instalador volverá en cuanto quede resuelto y firmado.
+Mientras tanto puedes [compilarlo desde el código](#compilar-desde-el-código).
 
-#### Code signing policy
+#### Política de firma de código
 
-Free code signing provided by [SignPath.io](https://signpath.io), certificate by
-[SignPath Foundation](https://signpath.org). Only installers built by GitHub
-Actions from this repository are signed, each one approved by hand. Roles and
-details: [code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html).
+Firma de código gratuita proporcionada por [SignPath.io](https://signpath.io), certificado de
+[SignPath Foundation](https://signpath.org). Solo se firman los instaladores que compila
+GitHub Actions a partir de este repositorio, cada uno aprobado a mano. Roles y
+detalles: [política de firma de código](https://diegovolta91.github.io/VoltaDock/code-signing.html).
 
-There is no notch on a PC, so the island slides out of the top edge of the screen
-instead of hiding inside one. See [`windows/README.md`](windows/README.md) for the
-rest of the differences.
+En una PC no hay notch, así que la isla sale del borde superior de la pantalla en vez
+de esconderse dentro de uno. Las demás diferencias están en [`windows/README.md`](windows/README.md).
 
-### Build from source
+### Compilar desde el código
 
-**macOS** — requirements: macOS 15+, Xcode 16+, [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+**macOS**: necesitas macOS 15+, Xcode 16+ y [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
 brew install xcodegen
-git clone https://github.com/DiegoVolta91/coucou.git
-cd coucou/NotchBuddy
+git clone https://github.com/DiegoVolta91/VoltaDock.git
+cd VoltaDock/NotchBuddy
 xcodegen
-open NotchBuddy.xcodeproj   # then ⌘R
+open NotchBuddy.xcodeproj   # luego ⌘R
 ```
 
-**Windows** — requirements: [Rust](https://rustup.rs), Node 20+, MSVC build tools.
+**Windows**: necesitas [Rust](https://rustup.rs), Node 20+ y las herramientas de compilación de MSVC.
 
 ```powershell
-git clone https://github.com/DiegoVolta91/coucou.git
-cd coucou/windows
+git clone https://github.com/DiegoVolta91/VoltaDock.git
+cd VoltaDock/windows
 npm install
-npm run pack                # installer lands in windows/release/
+npm run pack                # el instalador queda en windows/release/
 ```
 
-## Setup
+## Configuración
 
-Click the VoltaDock icon in the menu bar (macOS) or in the system tray (Windows) → **Settings…**
+Haz clic en el ícono de VoltaDock en la barra de menús (macOS) o en la bandeja del sistema (Windows) → **Ajustes…**
 
-| What | Why | Where the key goes |
+| Qué | Para qué | Dónde va la clave |
 |---|---|---|
-| **Claude Code hooks** | live sessions and approvals | **Install hooks** — VoltaDock backs up `~/.claude/settings.json`, merges its hooks and shows you the diff before writing anything |
-| **Anthropic API key** | chat and questions about files | Keychain / Windows Credential Manager |
-| Stripe, n8n, GitHub, Vercel, Resend, Notion, Cal.com | the integration pills | Keychain / Windows Credential Manager, all optional |
+| **Hooks de Claude Code** | sesiones en vivo y aprobaciones | **Instalar hooks**: VoltaDock respalda `~/.claude/settings.json`, combina sus hooks y te muestra el diff antes de escribir nada |
+| **Clave de API de Anthropic** | chat y preguntas sobre archivos | Llavero / Administrador de credenciales de Windows |
+| Stripe, n8n, GitHub, Vercel, Resend, Notion, Cal.com | las pastillas de integraciones | Llavero / Administrador de credenciales de Windows, todas opcionales |
 
-If VoltaDock isn't running, the hook exits immediately: **Claude Code is never blocked.**
+Si VoltaDock no está abierta, el hook termina al instante: **Claude Code nunca se queda bloqueado.**
 
-## Things to try
+## Cosas para probar
 
-| Do this | Mochi does that |
+| Haz esto | Volt hace esto |
 |---|---|
-| Hover the notch (top edge on Windows) | peeks out and says hi 👋 |
-| Click it | opens |
-| Hover Mochi | blinks, eyes grow |
-| Click Mochi | squish + annoyed |
-| Click 3 times fast | 😵‍💫 dizzy for a few seconds |
-| Drag a file onto the island | turns into a box and swallows it |
-| Drag Mochi onto a window *(macOS)* | attaches it as context |
+| Pasa el mouse por el notch (borde superior en Windows) | se asoma y saluda 👋 |
+| Haz clic | se abre |
+| Pasa el mouse sobre Volt | parpadea, los ojos crecen |
+| Haz clic en Volt | se aplasta y se enoja |
+| Tres clics rápidos | 😵‍💫 mareado unos segundos |
+| Arrastra un archivo a la isla | se convierte en caja y se lo traga |
+| Arrastra a Volt sobre una ventana *(macOS)* | la adjunta como contexto |
 
-## How it works
+## Cómo funciona
 
 **macOS**
 
-- **Island**: a borderless `NSPanel` hugging the notch, driven by a small state machine (`hidden → petit → home`).
-- **Character**: drawn in SwiftUI `Canvas` + `TimelineView` at 60 fps — squircle body, eyes projected on a sphere, spring animations. No Rive, no Lottie, no images.
-- **Claude Code**: a tiny `nb-hook` script receives hook events and forwards them over a Unix socket to the app. For approvals it waits for your click, then answers the hook.
-- **Integrations**: lightweight pollers, paused when nothing is watching.
-- **Sounds**: 28 short WAVs played through preloaded `AVAudioPlayer`s.
+- **Isla**: un `NSPanel` sin bordes pegado al notch, manejado por una pequeña máquina de estados (`hidden → petit → home`).
+- **Personaje**: Volt se dibuja con `Canvas` + `TimelineView` de SwiftUI a 60 fps (`VoltShape.swift`): cuerpo de pila, antena de rayo, barra de carga, ojos que siguen al cursor, animaciones con resorte. Sin Rive, sin Lottie, sin imágenes.
+- **Claude Code**: un pequeño script `nb-hook` recibe los eventos de los hooks y los reenvía a la app por un socket Unix. Para las aprobaciones espera tu clic y luego responde al hook.
+- **Integraciones**: consultas ligeras que se pausan cuando nadie está mirando.
+- **Sonidos**: 28 WAV cortos, sintetizados en código y reproducidos con `AVAudioPlayer` precargados.
 
-The macOS app is native Swift 6 / SwiftUI / AppKit with **zero third-party dependencies**.
+La app de macOS es Swift 6 / SwiftUI / AppKit nativo, **sin dependencias de terceros**.
 
 **Windows**
 
-- A [Tauri 2](https://tauri.app) app (Rust + TypeScript): the island is a transparent, always-on-top window that never steals focus, Mochi is drawn in Canvas 2D with the same shapes, timings and sounds as on the Mac.
-- Claude Code hooks go through a tiny `coucou-hook.exe` and a named pipe; keys live in Windows Credential Manager.
-- Details and differences in [`windows/README.md`](windows/README.md).
+- Una app [Tauri 2](https://tauri.app) (Rust + TypeScript): la isla es una ventana transparente, siempre encima, que nunca roba el foco. Volt se dibuja en Canvas 2D con las mismas formas, tiempos y sonidos que en la Mac.
+- Los hooks de Claude Code pasan por un pequeño ejecutable intermediario (todavía llamado `coucou-hook.exe`, por el proyecto original) y una tubería con nombre; las claves viven en el Administrador de credenciales de Windows.
+- Detalles y diferencias en [`windows/README.md`](windows/README.md).
 
-## Contributing
+## Contribuir
 
-Issues and PRs are very welcome — new integrations, new emotes, new sounds, bug fixes. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Los issues y PRs son muy bienvenidos: nuevas integraciones, nuevas emociones, nuevos sonidos, correcciones. Lee [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Credits
+## Créditos
 
-Built by Diego ([@DiegoVolta91](https://github.com/DiegoVolta91)) with Claude Code.
-VoltaDock started as a fork of [Coucou](https://github.com/Louis-CFM/coucou) by Louis Raillé (MIT) and is now developed independently.
-Inspired by the notch-companion concepts shared by design studios — this project is independent and not affiliated with any of them.
+Hecho por Diego ([@DiegoVolta91](https://github.com/DiegoVolta91)) con Claude Code.
+VoltaDock empezó como un fork de Coucou, de Louis Raillé (MIT), y ahora se desarrolla de forma independiente; el aviso de copyright original se conserva en [LICENSE](LICENSE).
+Inspirado en los conceptos de compañeros para el notch que han compartido estudios de diseño. Este proyecto es independiente y no está afiliado a ninguno de ellos.
 
-## License
+## Licencia
 
-- **Code:** [MIT](LICENSE) — use it, fork it, learn from it, just keep the copyright notice.
-- **Character, icons and sounds:** Volt, the app icons and the sounds are VoltaDock's own, drawn and synthesised in code (MIT).
-- **Screenshots and demo media** in `docs/media/` and `design/` still come from Coucou: © Louis Raillé, not covered by the MIT License — see [LICENSE-ASSETS.md](LICENSE-ASSETS.md). They will be replaced with Volt captures.
+- **Código:** [MIT](LICENSE). Úsalo, bifúrcalo, aprende de él; solo conserva el aviso de copyright.
+- **Personaje, íconos y sonidos:** Volt, los íconos de la app y los sonidos son de VoltaDock, dibujados y sintetizados en código (MIT).
+- **Capturas y demo** en `docs/media/`: capturas de VoltaDock (MIT). Las referencias de diseño en `design/` todavía vienen del proyecto original y no están cubiertas por la licencia MIT; ver [LICENSE-ASSETS.md](LICENSE-ASSETS.md).
 
 <div align="center">
 
-**If Volt made you smile, a ⭐ helps a lot.**
+**Si Volt te sacó una sonrisa, una ⭐ ayuda muchísimo.**
 
-[Website](https://diegovolta91.github.io/VoltaDock/) · [Privacy](https://diegovolta91.github.io/VoltaDock/privacy.html) · [Terms](https://diegovolta91.github.io/VoltaDock/terms.html) · [Support](https://diegovolta91.github.io/VoltaDock/support.html) · [Code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html)
+[Sitio web](https://diegovolta91.github.io/VoltaDock/) · [Privacidad](https://diegovolta91.github.io/VoltaDock/privacy.html) · [Términos](https://diegovolta91.github.io/VoltaDock/terms.html) · [Ayuda](https://diegovolta91.github.io/VoltaDock/support.html) · [Política de firma de código](https://diegovolta91.github.io/VoltaDock/code-signing.html)
 
 </div>

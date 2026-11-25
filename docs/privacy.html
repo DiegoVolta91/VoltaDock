@@ -1,15 +1,69 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy Policy — VoltaDock</title><link rel="icon" href="media/icon.png"><link rel="stylesheet" href="site.css"></head><body><div class="wrap">
+<!doctype html><html lang="es" data-lang="es" data-title-es="Política de privacidad — VoltaDock" data-title-en="Privacy Policy — VoltaDock"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Política de privacidad — VoltaDock</title><meta name="description" content="VoltaDock: Volt, un pequeño compañero en la parte de arriba de tu pantalla que sigue tus sesiones de Claude Code. / A tiny friend at the top of your screen that keeps an eye on your Claude Code sessions.">
+<link rel="icon" href="media/icon.png"><link rel="stylesheet" href="site.css"><script src="lang.js"></script></head><body><div class="wrap">
 <header><a href="index.html"><img src="media/icon.png" alt=""></a><span class="name">VoltaDock</span>
-<nav><a href="index.html">Home</a><a href="support.html">Support</a><a href="privacy.html" class="on">Privacy</a><a href="terms.html">Terms</a><a href="legal.html">Legal</a></nav></header>
-<div class="lang"><a href="#en">English</a><a href="#fr">Français</a></div>
-<section id="en">
+<div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-set="es" aria-pressed="true">Español</button><button type="button" data-set="en" aria-pressed="false">English</button></div>
+<nav><a href="index.html"><span data-lang="es">Inicio</span><span data-lang="en">Home</span></a><a href="support.html"><span data-lang="es">Ayuda</span><span data-lang="en">Support</span></a><a href="privacy.html" class="on"><span data-lang="es">Privacidad</span><span data-lang="en">Privacy</span></a><a href="terms.html"><span data-lang="es">Términos</span><span data-lang="en">Terms</span></a><a href="legal.html"><span data-lang="es">Aviso legal</span><span data-lang="en">Legal</span></a></nav></header>
+<section id="es" data-lang="es">
+<h1>Política de privacidad</h1>
+<div class="meta">Última actualización: 25 de noviembre de 2026</div>
+<div class="card"><b>En resumen:</b> VoltaDock no tiene cuenta, ni estadísticas, ni anuncios, ni rastreo. El desarrollador no recibe ninguno de tus datos. Todo se queda en tu computadora (Mac o PC), salvo lo que tú decidas enviar a los servicios que conectas.</div>
+
+<h2>1. Quién es responsable</h2>
+<p>VoltaDock lo publica Diego (DiegoVolta91), desarrollador independiente (“nosotros”). Contacto: <a href="https://github.com/DiegoVolta91/VoltaDock/issues">issues de GitHub</a>.</p>
+
+<h2>2. Datos que recopilamos</h2>
+<p><b>Ninguno.</b> VoltaDock no nos envía datos, ni a ningún servidor que operemos. No hay telemetría, ni servicio de reporte de fallos, ni identificador publicitario, ni SDK de terceros.</p>
+
+<h2>3. Datos guardados en tu computadora</h2>
+<table>
+<tr><th>Qué</th><th>Dónde</th><th>Para qué</th></tr>
+<tr><td>Claves de API y tokens que escribes (Anthropic, Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n)</td><td>Llavero de macOS, o Administrador de credenciales de Windows</td><td>Llamar a esos servicios en tu nombre</td></tr>
+<tr><td>Preferencias (sonido, tiempos, integraciones activas, atajo)</td><td>Preferencias de la app en tu Mac, o <code>%APPDATA%\Coucou</code> en Windows*</td><td>Recordar tus ajustes</td></tr>
+<tr><td>Pendientes, recordatorios y bloques de enfoque de Hoy</td><td>En tu computadora, junto a las preferencias</td><td>Mostrártelos a tiempo</td></tr>
+<tr><td>Archivos que sueltas en la isla</td><td>Una copia en la carpeta de la app (en Windows: <code>%LOCALAPPDATA%\Coucou</code>*)</td><td>Para que puedas preguntar sobre ellos o adjuntarlos a un correo</td></tr>
+<tr><td>Eventos de las sesiones de Claude Code (nombre del proyecto, paso actual, solicitudes de permiso)</td><td>Solo en memoria</td><td>Mostrarlos en la isla</td></tr>
+</table>
+<p class="note">* En Windows, estas carpetas todavía usan el nombre del proyecto original, Coucou. Pasarán a llamarse VoltaDock en una próxima versión.</p>
+<p>Puedes borrar todo en cualquier momento: quita tus claves en Ajustes y luego borra la app y su carpeta <code>~/Library/Application Support/VoltaDock</code> (o el contenedor de la app en la versión de la Mac App Store). En Windows: desinstala VoltaDock desde Configuración → Aplicaciones y borra <code>%APPDATA%\Coucou</code> y <code>%LOCALAPPDATA%\Coucou</code>.</p>
+
+<h2>4. Servicios que conectas tú</h2>
+<p>VoltaDock solo habla con los servicios que configuras, directamente desde tu computadora y con tus propias claves. Esos servicios tratan tus datos según sus propias políticas:</p>
+<ul>
+<li><b>Anthropic (API de Claude)</b>: cuando chateas con Claude o preguntas sobre un archivo o una ventana, se envían a Anthropic el texto que escribes, el contenido del archivo y/o el contexto de la ventana que elegiste. <a href="https://www.anthropic.com/legal/privacy">Política de privacidad de Anthropic</a>.</li>
+<li><b>Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n</b>: VoltaDock lee datos de tus propias cuentas (pagos, repositorios, despliegues, correos, páginas, citas, ejecuciones de flujos) para mostrarlos. Solo los lee.</li>
+</ul>
+<p>No tenemos acceso a esas solicitudes ni a sus respuestas.</p>
+
+<h2>5. Claude Code</h2>
+<p>Si instalas los hooks de Claude Code, Claude Code envía los eventos de sesión a VoltaDock por una conexión local dentro de tu computadora. VoltaDock nunca los saca de tu computadora. Antes de modificar <code>~/.claude/settings.json</code>, VoltaDock hace una copia fechada y te muestra los cambios.</p>
+
+<h2>6. Compañero para iPad (en desarrollo)</h2>
+<p>Cuando esté disponible, el compañero para iPad se conectará directamente a tu computadora por tu red Wi-Fi local, con una conexión cifrada y emparejada por código QR. Estará apagado hasta que tú lo actives y no pasará por ningún servidor nuestro.</p>
+
+<h2>7. Correo</h2>
+<p>Cuando envías un archivo por correo (Mac), el mensaje lo crea y lo envía tu propia app Mail. VoltaDock nunca envía correos por su cuenta.</p>
+
+<h2>8. Permisos del sistema</h2>
+<p>Según la versión y las funciones que uses, macOS puede pedirte permiso de Automatización (Mail, Terminal), Accesibilidad (para leer el título de la ventana que adjuntas) o Grabación de pantalla (para capturar una ventana que adjuntas). Solo se usan para la función que activaste y puedes retirarlos cuando quieras en Ajustes del Sistema → Privacidad y seguridad. La versión de Windows no pide permisos especiales ni derechos de administrador.</p>
+
+<h2>9. Menores</h2>
+<p>VoltaDock es una herramienta para desarrolladores y no está dirigida a menores.</p>
+
+<h2>10. Tus derechos</h2>
+<p>Como no guardamos datos personales tuyos, no hay nada que consultar, corregir o borrar de nuestro lado. Para los datos que guarda un servicio que conectaste, contacta a ese servicio. También puedes acudir a la autoridad de protección de datos de tu país.</p>
+
+<h2>11. Cambios</h2>
+<p>Si esta política cambia, la nueva versión se publicará en esta página con una fecha nueva.</p>
+</section>
+
+<section id="en" data-lang="en">
 <h1>Privacy Policy</h1>
-<div class="meta">Last updated: September 30, 2026</div>
+<div class="meta">Last updated: November 25, 2026</div>
 <div class="card"><b>In short:</b> VoltaDock has no account, no analytics, no ads and no tracking. The developer receives none of your data. Everything stays on your computer (Mac or PC), except what you choose to send to the services you connect yourself.</div>
 
 <h2>1. Who is responsible</h2>
-<p>VoltaDock is published by Diego (DiegoVolta91), an individual developer (“we”). Contact: <a href="https://github.com/DiegoVolta91/coucou/issues">GitHub issues</a>.</p>
+<p>VoltaDock is published by Diego (DiegoVolta91), an individual developer (“we”). Contact: <a href="https://github.com/DiegoVolta91/VoltaDock/issues">GitHub issues</a>.</p>
 
 <h2>2. Data we collect</h2>
 <p><b>None.</b> VoltaDock does not send any data to us or to any server we operate. There is no telemetry, no crash reporting service, no advertising identifier and no third-party SDK.</p>
@@ -18,14 +72,16 @@
 <table>
 <tr><th>What</th><th>Where</th><th>Why</th></tr>
 <tr><td>API keys and tokens you enter (Anthropic, Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n)</td><td>macOS Keychain, or Windows Credential Manager</td><td>To call these services on your behalf</td></tr>
-<tr><td>Preferences (sound, delays, active integrations, shortcut)</td><td>App preferences on your Mac, or <code>%APPDATA%\Coucou</code> on Windows</td><td>To remember your settings</td></tr>
-<tr><td>Files you drop on the notch</td><td>A copy in the app’s own folder (on Windows: <code>%LOCALAPPDATA%\Coucou</code>)</td><td>So you can ask a question about them or attach them to an email</td></tr>
-<tr><td>Claude Code session events (project name, current step, permission requests)</td><td>In memory only</td><td>To show them in the notch</td></tr>
+<tr><td>Preferences (sound, delays, active integrations, shortcut)</td><td>App preferences on your Mac, or <code>%APPDATA%\Coucou</code> on Windows*</td><td>To remember your settings</td></tr>
+<tr><td>Today's to-dos, reminders and focus blocks</td><td>On your computer, next to the preferences</td><td>To show them on time</td></tr>
+<tr><td>Files you drop on the island</td><td>A copy in the app's own folder (on Windows: <code>%LOCALAPPDATA%\Coucou</code>*)</td><td>So you can ask a question about them or attach them to an email</td></tr>
+<tr><td>Claude Code session events (project name, current step, permission requests)</td><td>In memory only</td><td>To show them on the island</td></tr>
 </table>
-<p>You can delete all of this at any time by removing your keys in Settings, then deleting the app and its folder in <code>~/Library/Application Support/VoltaDock</code> (or the app’s container for the App Store version). On Windows: uninstall VoltaDock from Settings → Apps, then delete <code>%APPDATA%\Coucou</code> and <code>%LOCALAPPDATA%\Coucou</code>.</p>
+<p class="note">* On Windows these folders still carry the original project's name, Coucou. They will be renamed VoltaDock in an upcoming version.</p>
+<p>You can delete all of this at any time by removing your keys in Settings, then deleting the app and its folder in <code>~/Library/Application Support/VoltaDock</code> (or the app's container for the Mac App Store version). On Windows: uninstall VoltaDock from Settings → Apps, then delete <code>%APPDATA%\Coucou</code> and <code>%LOCALAPPDATA%\Coucou</code>.</p>
 
 <h2>4. Services you connect yourself</h2>
-<p>VoltaDock only talks to the services you configure, directly from your Mac, using your own keys. Those services process your data under their own privacy policies:</p>
+<p>VoltaDock only talks to the services you configure, directly from your computer, using your own keys. Those services process your data under their own privacy policies:</p>
 <ul>
 <li><b>Anthropic (Claude API)</b> — when you chat with Claude or ask about a file or a window, the text you type, the file content and/or the window context you chose are sent to Anthropic. <a href="https://www.anthropic.com/legal/privacy">Anthropic privacy policy</a>.</li>
 <li><b>Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n</b> — VoltaDock reads data from your own accounts (payments, repositories, deployments, emails, pages, bookings, workflow runs) to display them. VoltaDock only reads from them.</li>
@@ -35,68 +91,23 @@
 <h2>5. Claude Code</h2>
 <p>If you install the Claude Code hooks, Claude Code sends session events to VoltaDock through a local connection on your computer. These events never leave your computer through VoltaDock. Before changing <code>~/.claude/settings.json</code>, VoltaDock makes a dated backup and shows you the changes.</p>
 
-<h2>6. Email</h2>
-<p>When you send a file by email, the message is created and sent by your own Mail app. VoltaDock never sends email by itself.</p>
+<h2>6. iPad companion (in development)</h2>
+<p>When it ships, the iPad companion will connect straight to your computer over your local Wi-Fi network, through an encrypted connection paired with a QR code. It will stay off until you turn it on and will not go through any server of ours.</p>
 
-<h2>7. System permissions</h2>
+<h2>7. Email</h2>
+<p>When you send a file by email (Mac), the message is created and sent by your own Mail app. VoltaDock never sends email by itself.</p>
+
+<h2>8. System permissions</h2>
 <p>Depending on the version and the features you use, macOS may ask you to allow Automation (Mail, Terminal), Accessibility (to read the title of the window you attach) or Screen Recording (to capture a window you attach). These are only used for the feature you triggered and can be revoked at any time in System Settings → Privacy &amp; Security. The Windows version asks for no special permission and no administrator rights.</p>
 
-<h2>8. Children</h2>
+<h2>9. Children</h2>
 <p>VoltaDock is a developer tool and is not directed at children.</p>
 
-<h2>9. Your rights</h2>
-<p>Since we hold no personal data about you, there is nothing for us to access, correct or delete. For data held by a service you connected, please contact that service. If you live in the EU, you can also contact your data protection authority (in France: the <a href="https://www.cnil.fr">CNIL</a>).</p>
+<h2>10. Your rights</h2>
+<p>Since we hold no personal data about you, there is nothing for us to access, correct or delete. For data held by a service you connected, please contact that service. You can also contact the data protection authority of your country.</p>
 
-<h2>10. Changes</h2>
+<h2>11. Changes</h2>
 <p>If this policy changes, the new version will be published on this page with a new date.</p>
 </section>
-
-<hr>
-<section id="fr" lang="fr">
-<h1>Politique de confidentialité</h1>
-<div class="meta">Dernière mise à jour : 30 septembre 2026</div>
-<div class="card"><b>En bref :</b> VoltaDock n’a ni compte, ni statistiques, ni publicité, ni pistage. Le développeur ne reçoit aucune de tes données. Tout reste sur ton ordinateur (Mac ou PC), sauf ce que tu choisis d’envoyer aux services que tu connectes toi-même.</div>
-
-<h2>1. Responsable</h2>
-<p>VoltaDock est publié par Diego (DiegoVolta91), développeur indépendant. Contact : <a href="https://github.com/DiegoVolta91/coucou/issues">issues GitHub</a>.</p>
-
-<h2>2. Données collectées</h2>
-<p><b>Aucune.</b> VoltaDock n’envoie aucune donnée au développeur ni à un serveur qu’il exploite. Pas de télémétrie, pas de service de rapport de plantage, pas d’identifiant publicitaire, pas de SDK tiers.</p>
-
-<h2>3. Données stockées sur ton ordinateur</h2>
-<table>
-<tr><th>Quoi</th><th>Où</th><th>Pourquoi</th></tr>
-<tr><td>Clés d’API et jetons saisis (Anthropic, Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n)</td><td>Trousseau macOS, ou Gestionnaire d’identifiants Windows</td><td>Appeler ces services pour toi</td></tr>
-<tr><td>Préférences (son, délais, intégrations actives, raccourci)</td><td>Préférences de l’app sur ton Mac, ou <code>%APPDATA%\Coucou</code> sous Windows</td><td>Garder tes réglages</td></tr>
-<tr><td>Fichiers déposés sur le notch</td><td>Une copie dans le dossier de l’app (sous Windows : <code>%LOCALAPPDATA%\Coucou</code>)</td><td>Pouvoir poser une question dessus ou les joindre à un mail</td></tr>
-<tr><td>Événements des sessions Claude Code (nom du projet, étape en cours, demandes de permission)</td><td>En mémoire uniquement</td><td>Les afficher dans le notch</td></tr>
-</table>
-<p>Tu peux tout supprimer à tout moment : retire tes clés dans les Réglages, puis supprime l’app et son dossier <code>~/Library/Application Support/VoltaDock</code> (ou le conteneur de l’app pour la version App Store). Sous Windows : désinstalle VoltaDock depuis Paramètres → Applications, puis supprime <code>%APPDATA%\Coucou</code> et <code>%LOCALAPPDATA%\Coucou</code>.</p>
-
-<h2>4. Services que tu connectes toi-même</h2>
-<p>VoltaDock ne communique qu’avec les services que tu configures, directement depuis ton Mac, avec tes propres clés. Ces services traitent tes données selon leur propre politique :</p>
-<ul>
-<li><b>Anthropic (API Claude)</b> : quand tu discutes avec Claude ou poses une question sur un fichier ou une fenêtre, le texte saisi, le contenu du fichier et/ou le contexte de la fenêtre choisie sont envoyés à Anthropic. <a href="https://www.anthropic.com/legal/privacy">Politique de confidentialité d’Anthropic</a>.</li>
-<li><b>Stripe, GitHub, Vercel, Resend, Notion, Cal.com, n8n</b> : VoltaDock lit les données de tes propres comptes (paiements, dépôts, déploiements, e-mails, pages, rendez-vous, exécutions de workflows) pour les afficher. VoltaDock ne fait que lire.</li>
-</ul>
-<p>Le développeur n’a accès ni à ces requêtes ni à leurs réponses.</p>
-
-<h2>5. Claude Code</h2>
-<p>Si tu installes les hooks Claude Code, Claude Code envoie les événements de session à VoltaDock par une connexion locale sur ton ordinateur. VoltaDock ne les fait jamais sortir de ton ordinateur. Avant de modifier <code>~/.claude/settings.json</code>, VoltaDock en fait une sauvegarde datée et te montre les changements.</p>
-
-<h2>6. E-mail</h2>
-<p>Quand tu envoies un fichier par e-mail, le message est créé et envoyé par ta propre app Mail. VoltaDock n’envoie jamais d’e-mail de lui-même.</p>
-
-<h2>7. Autorisations système</h2>
-<p>Selon la version et les fonctions utilisées, macOS peut te demander d’autoriser l’Automatisation (Mail, Terminal), l’Accessibilité (lire le titre de la fenêtre que tu attaches) ou l’Enregistrement de l’écran (capturer une fenêtre que tu attaches). Elles ne servent qu’à la fonction que tu as déclenchée et se retirent à tout moment dans Réglages Système → Confidentialité et sécurité. La version Windows ne demande aucune autorisation particulière ni droit administrateur.</p>
-
-<h2>8. Enfants</h2>
-<p>VoltaDock est un outil pour développeurs, il ne s’adresse pas aux enfants.</p>
-
-<h2>9. Tes droits</h2>
-<p>Le développeur ne détenant aucune donnée personnelle te concernant, il n’y a rien à consulter, corriger ou supprimer de son côté. Pour les données détenues par un service que tu as connecté, contacte ce service. Tu peux aussi saisir la <a href="https://www.cnil.fr">CNIL</a>.</p>
-
-<h2>10. Modifications</h2>
-<p>En cas de changement, la nouvelle version sera publiée sur cette page avec une nouvelle date.</p>
-</section>
-<footer>© 2026 Diego · VoltaDock is free and open source (MIT), based on Coucou by Louis Raillé · <a href="https://github.com/DiegoVolta91/coucou">GitHub</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="legal.html">Legal notice</a></footer></div></body></html>
+<footer>© 2026 Diego · <span data-lang="es">VoltaDock es libre y de código abierto (MIT). Empezó como fork de Coucou, de Louis Raillé.</span><span data-lang="en">VoltaDock is free and open source (MIT). It started as a fork of Coucou by Louis Raillé.</span> · <a href="https://github.com/DiegoVolta91/VoltaDock">GitHub</a> · <a href="privacy.html"><span data-lang="es">Privacidad</span><span data-lang="en">Privacy</span></a> · <a href="terms.html"><span data-lang="es">Términos</span><span data-lang="en">Terms</span></a> · <a href="legal.html"><span data-lang="es">Aviso legal</span><span data-lang="en">Legal notice</span></a> · <a href="code-signing.html"><span data-lang="es">Firma de código</span><span data-lang="en">Code signing policy</span></a></footer></div>
+</body></html>

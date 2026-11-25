@@ -136,6 +136,15 @@ export interface Settings {
   projectsRoot: string;
   /** Interface language: "es" (default), "en", or "system" to follow Windows. */
   language: Language;
+  /**
+   * "top" = top centre of the display (default); "free" = wherever the user
+   * dragged it. Written by Rust only (drag, reset).
+   */
+  dock: "top" | "free";
+  /** Free dock: anchor as fractions of the display's work area (see settings.rs). */
+  dockX: number;
+  dockY: number;
+  dockMonitor: string;
   /** A paired iPad may connect over the local network. Off by default. */
   remoteEnabled: boolean;
 }
@@ -154,6 +163,10 @@ export const DEFAULT_SETTINGS: Settings = {
   model: "claude-opus-5",
   projectsRoot: "",
   language: "es",
+  dock: "top",
+  dockX: 0.5,
+  dockY: 0,
+  dockMonitor: "",
   remoteEnabled: false,
 };
 

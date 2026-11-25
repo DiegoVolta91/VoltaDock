@@ -63,6 +63,38 @@ body {
   background: transparent;
 }
 
+/* Free dock: a small visible handle where the island sleeps, since away from
+   the top edge nobody would find an invisible strip. */
+.dock-free #wake-strip {
+  width: 120px;
+  height: 14px;
+}
+
+.dock-free #wake-strip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+/* Lower half of a display: the island grows upwards from its bottom edge. */
+.dock-up #wake-strip,
+.dock-up #island {
+  top: auto;
+  bottom: 0;
+}
+
+.dock-moving,
+.dock-moving * {
+  cursor: grabbing !important;
+}
+
 /* ── Island ─────────────────────────────────────────────────────────────── */
 
 #island {

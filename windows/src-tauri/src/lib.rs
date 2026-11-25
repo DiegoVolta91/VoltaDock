@@ -56,7 +56,7 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
     let mut settings = shared.settings.lock().unwrap().clone();
     // The real state of ~/.claude/settings.json wins over whatever we stored.
     settings.hooks_installed = hooks::status().installed;
-    let screen = island::screen_info(&app, &settings.screen);
+    let screen = island::screen_info(&app, &settings);
     BootInfo {
         settings,
         screen,
@@ -66,9 +66,15 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
 }
 
 #[tauri::command]
-fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
+fn save_settings(app: AppHandle, shared: State<Shared>, mut settings: Settings) {
     let (screen_changed, autostart_changed, remote_changed) = {
         let mut current = shared.settings.lock().unwrap();
+        // Where the island sits is Rust's to decide (drag, reset): a window
+        // holding an older copy must not put it back.
+        settings.dock = current.dock.clone();
+        settings.dock_x = current.dock_x;
+        settings.dock_y = current.dock_y;
+        settings.dock_monitor = current.dock_monitor.clone();
         let screen_changed = current.screen != settings.screen;
         let autostart_changed = current.autostart != settings.autostart;
         let remote_changed = current.remote_enabled != settings.remote_enabled;
@@ -96,7 +102,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
     }
     if screen_changed {
         let collapsed = shared.gate.collapsed.load(Ordering::Relaxed);
-        island::apply_geometry(&app, &settings.screen, collapsed);
+        island::apply_geometry(&app, &settings, collapsed);
     }
     // Keep the other window in step (island ⇄ settings window).
     let _ = app.emit("settings-changed", settings);
@@ -106,9 +112,9 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
 /// cursor poll; anything else → full panel and 60 Hz polling.
 #[tauri::command]
 fn set_collapsed(app: AppHandle, shared: State<Shared>, collapsed: bool) {
-    let pref = shared.settings.lock().unwrap().screen.clone();
+    let settings = shared.settings.lock().unwrap().clone();
     shared.gate.collapsed.store(collapsed, Ordering::Relaxed);
-    island::apply_geometry(&app, &pref, collapsed);
+    island::apply_geometry(&app, &settings, collapsed);
     // The wake strip must always take the mouse, and a resize invalidates the flag.
     island::set_ignore_cursor(&app, false);
     shared.gate.forget_ignore_state();
@@ -132,9 +138,21 @@ fn focus_window(app: AppHandle, focused: bool) {
 
 #[tauri::command]
 fn reposition(app: AppHandle, shared: State<Shared>) {
-    let pref = shared.settings.lock().unwrap().screen.clone();
+    let settings = shared.settings.lock().unwrap().clone();
     let collapsed = shared.gate.collapsed.load(Ordering::Relaxed);
-    island::apply_geometry(&app, &pref, collapsed);
+    island::apply_geometry(&app, &settings, collapsed);
+}
+
+/// A press on the island: it follows the pointer if the pointer moves.
+#[tauri::command]
+fn begin_dock_drag(app: AppHandle) {
+    island::begin_drag(app);
+}
+
+/// Settings → "Volver arriba al centro".
+#[tauri::command]
+fn reset_dock(app: AppHandle) {
+    island::reset_dock(&app);
 }
 
 #[tauri::command]
@@ -581,6 +599,8 @@ pub fn run() {
             set_island_rect,
             focus_window,
             reposition,
+            begin_dock_drag,
+            reset_dock,
             open_url,
             open_in_vscode,
             open_claude_session,
@@ -619,7 +639,7 @@ pub fn run() {
 
             if let Some(win) = island::window(&handle) {
                 island::make_non_activating(&win);
-                island::apply_geometry(&handle, &loaded.screen, false);
+                island::apply_geometry(&handle, &loaded, false);
                 let _ = win.show();
             }
             gate.collapsed.store(false, Ordering::Relaxed);
