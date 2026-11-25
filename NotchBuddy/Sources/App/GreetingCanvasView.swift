@@ -29,7 +29,7 @@ private enum GT {
 
 private let GC0     = CGPoint(x: 320, y: 90)   // Mochi center
 private let GHB:    CGFloat = 58                // body height at full size
-private let GASP:   CGFloat = 1.34             // body width/height ratio
+private let GASP:   CGFloat = Volt.hw / Volt.hh // body width/height ratio (Volt's case is taller than wide)
 private let GEAR_X: CGFloat = 40               // ear x from small island left edge (matches BotPlacement compact x=40)
 private let GEAR_Y: CGFloat = 16               // ear y
 private let GEAR_HB:CGFloat = 17               // ear body height
@@ -246,21 +246,6 @@ private func gRR(_ ctx: CGContext, _ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h
     ctx.closePath()
 }
 
-private func mochiPath(hw: CGFloat, hh: CGFloat) -> CGPath {
-    let n: CGFloat = 3.2
-    let path = CGMutablePath()
-    let steps = 96
-    for i in 0...steps {
-        let a = CGFloat(i)/CGFloat(steps)*2 * .pi
-        let ca = cos(a), sa = sin(a)
-        let px = hw * (ca < 0 ? -1 : 1) * pow(abs(ca), 2/n)
-        let py = hh * (sa < 0 ? -1 : 1) * pow(abs(sa), 2/n)
-        if i == 0 { path.move(to: CGPoint(x: px, y: py)) }
-        else { path.addLine(to: CGPoint(x: px, y: py)) }
-    }
-    path.closeSubpath(); return path
-}
-
 // Linear gradient fill clipped to path (body-local coords, centered at origin)
 private func whiteFill(_ ctx: CGContext, _ path: CGPath,
                         x0: CGFloat, y0: CGFloat, x1: CGFloat, y1: CGFloat) {
@@ -313,7 +298,7 @@ private func drawHandR(_ ctx: CGContext, hw: CGFloat, hh: CGFloat, p: GreetPose)
     ctx.restoreGState()
 }
 
-private func drawMochi(_ ctx: CGContext, p: GreetPose) {
+private func drawVolt(_ ctx: CGContext, p: GreetPose) {
     let hh = CGFloat(p.hb/2), hw = hh*GASP; guard hh > 0.4 else { return }
 
     // Halo (golden → blue) — soft diffuse aura, two-pass for smoothness
@@ -359,8 +344,17 @@ private func drawMochi(_ ctx: CGContext, p: GreetPose) {
     drawHandL(ctx, hw: hw, hh: hh, p: p)
     drawHandR(ctx, hw: hw, hh: hh, p: p)
 
+    // Cap and lightning bolt, glowing while the halo is up
+    let tNow = CACurrentMediaTime()
+    let lit = p.halo > 0.3
+    Volt.drawAntenna(ctx, hw: hw, hh: hh,
+                     color: lit ? CGColor(red: 1, green: 0.69, blue: 0.125, alpha: 1)
+                                : CGColor(red: 0.725, green: 0.506, blue: 0.11, alpha: 1),
+                     glow: lit ? hh * 0.4 * CGFloat(p.halo) : 0,
+                     sway: CGFloat(sin(tNow * 1.3)) * 0.08 + (p.wave >= 0 ? CGFloat(sin(p.wave * 9)) * 0.12 : 0))
+
     // Body
-    let mpath = mochiPath(hw: hw, hh: hh)
+    let mpath = Volt.cgBodyPath(hw: hw, hh: hh)
     whiteFill(ctx, mpath, x0: hw*0.6, y0: -hh, x1: -hw*0.6, y1: hh)
 
     // Blue tint overlay
@@ -376,15 +370,19 @@ private func drawMochi(_ ctx: CGContext, p: GreetPose) {
         }
     }
 
+    // Charge bar: fills up while Volt says hello
+    Volt.drawChargeBar(ctx, hw: hw, hh: hh, level: 0.25 + 0.75 * CGFloat(min(1, p.halo)),
+                       color: CGColor(red: 1, green: 0.69, blue: 0.125, alpha: 1))
+
     // Eyes (clipped to body)
     ctx.saveGState()
     ctx.addPath(mpath); ctx.clip()
     ctx.setFillColor(gHex("#16171A"))
     ctx.setStrokeColor(gHex("#16171A"))
     let er = CGFloat(p.hb*0.06)
-    let sp = CGFloat(p.hb*0.19)
+    let sp = CGFloat(p.hb*0.15)
     let lx = CGFloat(p.lookX)*hw*0.42
-    let ly = CGFloat(p.lookY)*hh*0.28 + hh*0.12 + CGFloat(p.eyeRoll)*hh*1.25
+    let ly = CGFloat(p.lookY)*hh*0.22 - hh*0.3 + CGFloat(p.eyeRoll)*hh*1.25
     for sd: CGFloat in [-1, 1] {
         ctx.saveGState()
         ctx.translateBy(x: sd*sp+lx, y: ly)
@@ -506,7 +504,7 @@ private func drawMinis(_ ctx: CGContext, alpha: Double) {
         ctx.translateBy(x: cx+dx, y: cy+dy)
         ctx.scaleBy(x: CGFloat(alpha), y: CGFloat(alpha))
         ctx.setFillColor(gHex(miniColors[i]))
-        ctx.addPath(mochiPath(hw: 5.3, hh: 4)); ctx.fillPath()
+        ctx.addPath(Volt.cgBodyPath(hw: 3.6, hh: 4.4)); ctx.fillPath()
         ctx.restoreGState()
     }
 }
@@ -539,7 +537,7 @@ private func drawGreeting(_ ctx: CGContext, size: CGSize, t: Double, tc: Double)
 
     // drawHeader: no icons during greeting
     drawMinis(ctx, alpha: p.minis)
-    drawMochi(ctx, p: p)
+    drawVolt(ctx, p: p)
 }
 
 // MARK: - SwiftUI View

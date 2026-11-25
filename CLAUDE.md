@@ -1,6 +1,6 @@
 # VoltaDock — guide for AI coding agents
 
-VoltaDock (an independent project that started as a fork of Coucou by Louis Raillé) is a native macOS app, with a Windows port in `windows/`: Mochi, a small animated character living in the MacBook notch, shows Claude Code sessions and a few integrations, and lets the user approve, answer, chat and drop files from the notch.
+VoltaDock (an independent project that started as a fork of Coucou by Louis Raillé) is a native macOS app, with a Windows port in `windows/`: Volt, a small animated character living in the MacBook notch, shows Claude Code sessions and a few integrations, and lets the user approve, answer, chat and drop files from the notch.
 
 ## Where things are
 - `NotchBuddy/Sources/App/` — all Swift code. `NotchBuddy/Resources/sounds/` — the 28 WAV sounds. `NotchBuddy/project.yml` — XcodeGen project (never edit the `.xcodeproj` by hand).
@@ -22,5 +22,6 @@ cd NotchBuddy && xcodegen && xcodebuild -scheme NotchBuddy -configuration Debug 
 - Never send an email or approve a Claude Code permission without an explicit click.
 - Performance: 0 % CPU when the island is hidden.
 - Keep the bundle identifiers `io.github.diegovolta91.VoltaDock` (Mac), `io.github.diegovolta91.VoltaDock.AppStore` (Mac App Store) and `io.github.diegovolta91.voltadock` (Windows): Keychain items, preferences and permissions depend on them. The Xcode project, scheme and `NotchBuddy/` folder keep their old internal name.
-- The Mochi character, icons, sounds and media still come from Coucou and are not MIT (see `LICENSE-ASSETS.md`): don't ship a public build with them.
-- Visual changes must match the prototype and the screenshots in `design/captures/`.
+- The character is **Volt** (a battery with a lightning-bolt antenna), drawn from `NotchBuddy/Sources/App/VoltShape.swift` and `windows/src/mochi/volt.ts`: keep the two in step. Icons come from `windows/scripts/gen-icons.mjs`, sounds from `scripts/gen-sounds.py`. Code names like `Mochi`/`mochi` are leftovers from Coucou.
+- `docs/media/` and `design/` still hold Coucou's artwork (not MIT, see `LICENSE-ASSETS.md`): don't publish it as VoltaDock's.
+- Island layouts and timings still follow the prototype and `design/captures/`; the character itself is Volt, so its look comes from the Volt drawing code, not from Mochi in those files.

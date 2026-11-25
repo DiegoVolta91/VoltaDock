@@ -1,4 +1,6 @@
-// Mochi — direct port of NotchBuddy/Sources/App/BotEngine.swift to Canvas 2D.
+// Volt (VoltaDock's character) — port of NotchBuddy/Sources/App/BotEngine.swift
+// to Canvas 2D. The animation engine (tweens, emotes, particles) is the one this
+// app inherited; the body, antenna and charge bar come from ./volt.ts.
 // Same constants, same tweens, same easings, same particles. The only intentional
 // difference is the `happy`/`wink` eye arc, which follows the prototype
 // (design/prototype/notch-buddy.html, the visual source of truth) — the Swift
@@ -7,6 +9,7 @@
 import { Ease, lerp, type EaseFn } from "../core/anim";
 import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
+import { AMBER, AMBER_DIM, SPARK, VOLT, drawChargeBar, drawVoltAntenna, type AntennaStyle } from "./volt";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -63,7 +66,7 @@ interface Particle {
 const EYE_W = 0.25;
 const EYE_H = 0.27;
 const EYE_SP = 0.37;
-const EYE_P = -0.12;
+const EYE_P = 0.3; // eyes sit in the upper half, above the charge bar
 const BASE_TOP: RGB = [0.929, 0.929, 0.937]; // #EDEDEF
 const BASE_BOTTOM: RGB = [0.769, 0.773, 0.792]; // #C4C5CA
 const INK = "rgb(26,20,18)"; // #1A1412
@@ -642,10 +645,10 @@ export class BotEngine {
    */
   draw(x: CanvasRenderingContext2D, W: number, H: number) {
     const R = W * 0.3;
-    const rx = R * 1.14;
-    const ry = R * 0.88;
+    const rx = R * VOLT.hw;
+    const ry = R * VOLT.hh;
     const cx = W / 2 + this.ox * R;
-    const cy = H / 2 + this.particleOverhang / 2 + this.oy * R + R * 0.06;
+    const cy = H / 2 + this.particleOverhang / 2 + this.oy * R + R * 0.06 + R * VOLT.drop;
 
     this.drawHandsBehind(x, R, rx, ry, cx, cy);
 
@@ -654,21 +657,14 @@ export class BotEngine {
     if (this.tilt !== 0) x.rotate(this.tilt);
     x.scale(this.sx, this.sy);
 
+    if (R > 6) drawVoltAntenna(x, rx, ry, this.antennaStyle(R));
     const body = this.bodyPath(rx, ry, R);
     this.drawBody(x, body, R, rx, ry);
 
-    const blushVal = Math.max(this.blush, this.tint * 0.5) * (1 - this.morph);
-    if (blushVal > 0.01) {
-      x.save();
-      x.clip(body);
-      const yOffset = Math.sin(this.yaw) * rx * 0.8;
-      x.fillStyle = `rgba(255,120,150,${0.5 * blushVal})`;
-      for (const sd of [-1, 1]) {
-        x.beginPath();
-        x.ellipse(sd * rx * 0.55 + yOffset, ry * 0.2, R * 0.17, R * 0.1, 0, 0, Math.PI * 2);
-        x.fill();
-      }
-      x.restore();
+    const barAlpha = 1 - this.morph * 3;
+    if (!this.isMini && R > 10 && barAlpha > 0.01) {
+      const { level, color } = this.chargeLevel();
+      drawChargeBar(x, rx, ry, level, color, barAlpha);
     }
 
     this.drawEyes(x, body, R, rx, ry);
@@ -682,9 +678,56 @@ export class BotEngine {
     this.drawParticles(x, R, cx, cy);
   }
 
+  /** Bolt colour, glow and sway for the current state. */
+  private antennaStyle(R: number): AntennaStyle {
+    const t = now();
+    const st = this.state;
+    let color = AMBER_DIM;
+    let glow = 0;
+    let cap: string | undefined;
+    if (this.isMini && this.bodyColor) {
+      color = rgba(mix3(this.bodyColor, [1, 1, 1], 0.25));
+      cap = rgba(mix3(this.bodyColor, [0, 0, 0], 0.2));
+    } else if (st === "approval" || st === "question") {
+      const on = Math.sin(t * 10) > 0;
+      color = on ? SPARK : rgba(this.col);
+      glow = R * (on ? 0.4 : 0.2);
+    } else if (st === "sleeping") {
+      color = "rgb(110,104,92)";
+    } else if (st !== "idle" && st !== "dizzy") {
+      color = rgba(this.col);
+      glow = R * (0.2 + 0.08 * Math.sin(t * 8));
+    }
+    let sway = Math.sin(t * 1.3) * 0.08;
+    if (st === "working" || st === "searching") sway += Math.sin(t * 9) * 0.05;
+    if (st === "dizzy") sway = 0.5 + Math.sin(t * 3) * 0.1;
+    if (st === "sleeping") sway = 0.35;
+    return { color, glow, sway, alpha: 1 - this.morph * 2, cap };
+  }
+
+  /** How full the charge bar is, and in which colour, for the current state. */
+  private chargeLevel(): { level: number; color: string } {
+    const t = now();
+    const col = rgba(this.col);
+    switch (this.state) {
+      case "working": return { level: (t * 0.35) % 1.15, color: col };
+      case "thinking": return { level: 0.5 + 0.25 * Math.sin(t * 2), color: col };
+      case "searching": return { level: Math.abs(Math.sin(t * 1.5)), color: col };
+      case "approval": return { level: 0.75, color: Math.sin(t * 10) > 0 ? SPARK : col };
+      case "question": return { level: 0.5, color: col };
+      case "error": return { level: 0.25, color: col };
+      case "finished": return { level: 1, color: col };
+      case "ratelimit": return { level: 0.25, color: Math.sin(t * 6) > 0 ? col : "rgb(90,70,50)" };
+      case "sleeping": return { level: 0.25, color: "rgb(110,120,140)" };
+      case "dizzy": return { level: 0.35 + 0.3 * Math.sin(t * 17), color: col };
+      default: return { level: 0.5, color: rgba(AMBER) };
+    }
+  }
+
+  /** Battery case, morphing into the upload box (rounded rect → bigger rounded rect). */
   private bodyPath(rx: number, ry: number, R: number): Path2D {
     const n = 72;
-    const expN = 2.0 / 2.7;
+    const cr0 = Math.min(rx, ry) * VOLT.corner;
     const tw = R * 1.0;
     const th = R * 0.94;
     const tr = R * 0.42;
@@ -694,8 +737,9 @@ export class BotEngine {
       const a = (i / n) * Math.PI * 2;
       const ca = Math.cos(a);
       const sa = Math.sin(a);
-      const px0 = rx * (ca >= 0 ? Math.pow(ca, expN) : -Math.pow(-ca, expN));
-      const py0 = ry * (sa >= 0 ? Math.pow(sa, expN) : -Math.pow(-sa, expN));
+      const base = rrPoint(ca, sa, rx, ry, cr0);
+      const px0 = base.x;
+      const py0 = base.y;
       let px = px0;
       let py = py0;
       if (m >= 0.005) {

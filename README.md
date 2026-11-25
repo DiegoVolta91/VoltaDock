@@ -27,7 +27,7 @@ Approve permissions, watch your agents work, drop a file, chat with Claude — a
 Some studios showed off gorgeous notch companions… and never let anyone use them.
 **VoltaDock is an open one.** Every line of code is free to use, read, fork and remix.
 
-Meet **Mochi**: a soft little squircle with big eyes that pops out of your notch, waves hello, follows your cursor with its eyes, gets annoyed when you poke it (and dizzy if you insist), and tells you the moment Claude Code needs you.
+Meet **Volt**: a little battery with a lightning-bolt antenna that pops out of your notch, waves hello, follows your cursor with its eyes, gets annoyed when you poke it (and dizzy if you insist). Its charge bar shows how Claude Code is doing, and its bolt sparks the moment Claude needs you.
 
 ## Features
 
@@ -68,6 +68,13 @@ The Windows installer is **temporarily unavailable**. Microsoft Defender wrongly
 flags the unsigned installer as malware; a false-positive report is under review
 at Microsoft and the installer will come back once it is cleared and signed.
 Until then you can [build it from source](#build-from-source).
+
+#### Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). Only installers built by GitHub
+Actions from this repository are signed, each one approved by hand. Roles and
+details: [code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html).
 
 There is no notch on a PC, so the island slides out of the top edge of the screen
 instead of hiding inside one. See [`windows/README.md`](windows/README.md) for the
@@ -149,12 +156,13 @@ Inspired by the notch-companion concepts shared by design studios — this proje
 ## License
 
 - **Code:** [MIT](LICENSE) — use it, fork it, learn from it, just keep the copyright notice.
-- **Mochi character, icon, sounds and media inherited from Coucou:** © Louis Raillé, all rights reserved, not covered by the MIT License — see [LICENSE-ASSETS.md](LICENSE-ASSETS.md). They are being replaced with VoltaDock's own before any public release.
+- **Character, icons and sounds:** Volt, the app icons and the sounds are VoltaDock's own, drawn and synthesised in code (MIT).
+- **Screenshots and demo media** in `docs/media/` and `design/` still come from Coucou: © Louis Raillé, not covered by the MIT License — see [LICENSE-ASSETS.md](LICENSE-ASSETS.md). They will be replaced with Volt captures.
 
 <div align="center">
 
-**If Mochi made you smile, a ⭐ helps a lot.**
+**If Volt made you smile, a ⭐ helps a lot.**
 
-[Website](https://diegovolta91.github.io/coucou/) · [Privacy](https://diegovolta91.github.io/coucou/privacy.html) · [Terms](https://diegovolta91.github.io/coucou/terms.html) · [Support](https://diegovolta91.github.io/coucou/support.html)
+[Website](https://diegovolta91.github.io/VoltaDock/) · [Privacy](https://diegovolta91.github.io/VoltaDock/privacy.html) · [Terms](https://diegovolta91.github.io/VoltaDock/terms.html) · [Support](https://diegovolta91.github.io/VoltaDock/support.html) · [Code signing policy](https://diegovolta91.github.io/VoltaDock/code-signing.html)
 
 </div>
