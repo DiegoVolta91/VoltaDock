@@ -77,7 +77,7 @@ enum MochiConst {
     static let eyeW: CGFloat  = 0.25
     static let eyeH: CGFloat  = 0.27
     static let eyeSp: CGFloat = 0.37
-    static let eyeP: CGFloat  = -0.12
+    static let eyeP: CGFloat  = 0.3   // Volt: eyes in the upper half, above the charge bar
     static let baseTop    = CGColor(red: 0.929, green: 0.929, blue: 0.937, alpha: 1)  // #EDEDEF
     static let baseBottom = CGColor(red: 0.769, green: 0.773, blue: 0.792, alpha: 1)  // #C4C5CA
     static let ink        = CGColor(red: 0.102, green: 0.082, blue: 0.071, alpha: 1)  // #1A1412
@@ -786,29 +786,33 @@ final class BotEngine: ObservableObject {
         let W = size.width
         let H = size.height
         let R = W * 0.3
-        let rx = R * 1.14
-        let ry = R * 0.88
+        let rx = R * Volt.hw
+        let ry = R * Volt.hh
 
         let cx = W / 2 + ox * R
         // particleOverhang shifts the bot body down in canvas coords so hearts can fly into
         // the extended canvas above without clipping (BotPlacement compensates with position offset)
-        let cy = H / 2 + particleOverhang / 2 + oy * R + R * 0.06
+        let cy = H / 2 + particleOverhang / 2 + oy * R + R * 0.06 + R * Volt.drop
 
         var ctx = context
         ctx.translateBy(x: cx, y: cy)
         if tilt != 0 { ctx.rotate(by: .radians(tilt)) }
         ctx.scaleBy(x: sx, y: sy)
 
-        // Body path (superellipse for Mochi, morph to rect for upload)
+        // Cap and lightning bolt above the case (fade out while morphing into the upload box)
+        if R > 6 { Volt.drawAntenna(ctx, hw: rx, hh: ry, style: antennaStyle(R: R)) }
+
+        // Body path (battery case, morph to the upload box)
         let bodyPath = mochiPath(rx: rx, ry: ry, morph: morph, R: R)
 
         // Body fill
         drawBody(ctx: &ctx, path: bodyPath, R: R, rx: rx, ry: ry)
 
-        // Blush — always shows a floor proportional to tint (prototype behaviour)
-        let blushVal = max(blush, tint * 0.5) * (1 - morph)
-        if blushVal > 0.01 {
-            drawBlush(ctx: &ctx, path: bodyPath, rx: rx, ry: ry, R: R, blush: blushVal)
+        // Charge bar on the belly, driven by the state
+        let barAlpha = 1 - morph * 3
+        if !isMini && R > 10 && barAlpha > 0.01 {
+            let charge = chargeLevel()
+            Volt.drawChargeBar(ctx, hw: rx, hh: ry, level: charge.level, color: charge.color, alpha: barAlpha)
         }
 
         // Eyes
@@ -870,10 +874,10 @@ final class BotEngine: ObservableObject {
         let R = W * 0.3
         // Only draw hands when Mochi is large enough to be meaningful (not compact/peek)
         guard R > 14 else { return }
-        let rx = R * 1.14
-        let ry = R * 0.88
+        let rx = R * Volt.hw
+        let ry = R * Volt.hh
         let cx = W / 2 + ox * R
-        let cy = H / 2 + particleOverhang / 2 + oy * R + R * 0.06
+        let cy = H / 2 + particleOverhang / 2 + oy * R + R * 0.06 + R * Volt.drop
 
         let now = CACurrentMediaTime()
         let bodyH = 2 * ry   // full body height
@@ -964,10 +968,10 @@ final class BotEngine: ObservableObject {
         let W = size.width
         let H = size.height
         let R = W * 0.3
-        let rx = R * 1.14
-        let ry = R * 0.88
+        let rx = R * Volt.hw
+        let ry = R * Volt.hh
         let cx = W / 2 + ox * R
-        let cy = H / 2 + particleOverhang / 2 + oy * R + R * 0.06
+        let cy = H / 2 + particleOverhang / 2 + oy * R + R * 0.06 + R * Volt.drop
 
         // Badge — hidden while morphing to mailbox
         if let badge = badge, badgeS > 0.01, morph < 0.25 {
@@ -980,9 +984,57 @@ final class BotEngine: ObservableObject {
 
     // MARK: - Private draw helpers
 
+    /// Bolt colour, glow and sway for the current state.
+    private func antennaStyle(R: CGFloat) -> Volt.AntennaStyle {
+        let t = CACurrentMediaTime()
+        var style = Volt.AntennaStyle(color: Volt.amberDim)
+        let stateColor = colorFromTuple(col)
+        if isMini, let bc = bodyColor {
+            let c = cgColorToTuple(bc)
+            style.color = colorFromTuple(mix3(c, (1, 1, 1), 0.25))
+            style.cap = colorFromTuple(mix3(c, (0, 0, 0), 0.2))
+        } else if state == .approval || state == .question {
+            let on = sin(t * 10) > 0
+            style.color = on ? Volt.spark : stateColor
+            style.glow = R * (on ? 0.4 : 0.2)
+        } else if state == .sleeping {
+            style.color = Color(red: 0.431, green: 0.408, blue: 0.361)
+        } else if state != .idle && state != .dizzy {
+            style.color = stateColor
+            style.glow = R * (0.2 + 0.08 * CGFloat(sin(t * 8)))
+        }
+        var sway = CGFloat(sin(t * 1.3)) * 0.08
+        if state == .working || state == .searching { sway += CGFloat(sin(t * 9)) * 0.05 }
+        if state == .dizzy { sway = 0.5 + CGFloat(sin(t * 3)) * 0.1 }
+        if state == .sleeping { sway = 0.35 }
+        style.sway = sway
+        style.alpha = 1 - morph * 2
+        return style
+    }
+
+    /// How full the charge bar is, and in which colour, for the current state.
+    private func chargeLevel() -> (level: CGFloat, color: Color) {
+        let t = CACurrentMediaTime()
+        let c = colorFromTuple(col)
+        switch state {
+        case .working:   return (CGFloat((t * 0.35).truncatingRemainder(dividingBy: 1.15)), c)
+        case .thinking:  return (0.5 + 0.25 * CGFloat(sin(t * 2)), c)
+        case .searching: return (abs(CGFloat(sin(t * 1.5))), c)
+        case .approval:  return (0.75, sin(t * 10) > 0 ? Volt.spark : c)
+        case .question:  return (0.5, c)
+        case .error:     return (0.25, c)
+        case .finished:  return (1, c)
+        case .ratelimit: return (0.25, sin(t * 6) > 0 ? c : Color(red: 0.353, green: 0.275, blue: 0.196))
+        case .sleeping:  return (0.25, Color(red: 0.431, green: 0.471, blue: 0.549))
+        case .dizzy:     return (0.35 + 0.3 * CGFloat(sin(t * 17)), c)
+        case .idle:      return (0.5, Volt.amber)
+        }
+    }
+
+    /// Volt's battery case, morphing into the upload box.
     private func mochiPath(rx: CGFloat, ry: CGFloat, morph: CGFloat, R: CGFloat) -> Path {
         let n = 72
-        let expN: CGFloat = 2.0 / 2.7
+        let cr0 = min(rx, ry) * Volt.corner
         // Target mailbox dims (spec: 1.0R wide, 0.94R tall, 0.42R corner radius)
         let tw = R * 1.0
         let th = R * 0.94
@@ -991,8 +1043,9 @@ final class BotEngine: ObservableObject {
         for i in 0...n {
             let a = CGFloat(i) / CGFloat(n) * .pi * 2
             let ca = cos(a), sa = sin(a)
-            let px0 = rx * (ca >= 0 ? pow(ca, expN) : -pow(-ca, expN))
-            let py0 = ry * (sa >= 0 ? pow(sa, expN) : -pow(-sa, expN))
+            let base = rrPoint(ca: ca, sa: sa, W: rx, H: ry, cr: cr0)
+            let px0 = base.x
+            let py0 = base.y
             let px: CGFloat
             let py: CGFloat
             if morph < 0.005 {
@@ -1095,18 +1148,6 @@ final class BotEngine: ObservableObject {
                 startRadius: 0,
                 endRadius: R*0.42
             ))
-        }
-    }
-
-    private func drawBlush(ctx: inout GraphicsContext, path: Path, rx: CGFloat, ry: CGFloat, R: CGFloat, blush: CGFloat) {
-        ctx.clip(to: path)
-        let yOffset = sin(yaw) * rx * 0.8
-        for sd in [-1.0, 1.0] {
-            let bx = CGFloat(sd) * rx * 0.55 + yOffset
-            let by = ry * 0.2
-            var ellipse = Path()
-            ellipse.addEllipse(in: CGRect(x: bx - R*0.17, y: by - R*0.1, width: R*0.34, height: R*0.2))
-            ctx.fill(ellipse, with: .color(Color(red: 1, green: 0.471, blue: 0.588, opacity: Double(0.5 * blush))))
         }
     }
 

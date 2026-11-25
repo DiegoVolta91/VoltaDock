@@ -3,6 +3,7 @@
 
 import { Sound } from "../core/sound";
 import { COMPACT_W, NOTCH_H, NOTCH_W } from "../core/layout";
+import { AMBER, AMBER_DIM, VOLT, drawChargeBar, drawVoltAntenna, voltBodyPath } from "./volt";
 
 // ── Timing (mirrors greeting-v2.html `T`) ─────────────────────────────────────
 
@@ -35,7 +36,7 @@ export const GREETING_END = T.end;
 
 const C0 = { x: 320, y: 90 };
 const HB = 58;
-const ASP = 1.34;
+const ASP = VOLT.hw / VOLT.hh; // Volt's case is taller than wide
 const EAR_X = 40;
 const EAR_Y = 16;
 const EAR_HB = 17;
@@ -248,23 +249,6 @@ function rr(x: CanvasRenderingContext2D, X: number, Y: number, W: number, H: num
   x.closePath();
 }
 
-function mochiPath(hw: number, hh: number): Path2D {
-  const n = 3.2;
-  const p = new Path2D();
-  const steps = 96;
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * 2 * Math.PI;
-    const ca = Math.cos(a);
-    const sa = Math.sin(a);
-    const px = hw * (ca < 0 ? -1 : 1) * Math.pow(Math.abs(ca), 2 / n);
-    const py = hh * (sa < 0 ? -1 : 1) * Math.pow(Math.abs(sa), 2 / n);
-    if (i === 0) p.moveTo(px, py);
-    else p.lineTo(px, py);
-  }
-  p.closePath();
-  return p;
-}
-
 function whiteFill(
   x: CanvasRenderingContext2D, path: Path2D,
   x0: number, y0: number, x1: number, y1: number,
@@ -327,7 +311,7 @@ function drawHandR(x: CanvasRenderingContext2D, hw: number, hh: number, p: Pose)
   x.restore();
 }
 
-function drawMochi(x: CanvasRenderingContext2D, p: Pose) {
+function drawVolt(x: CanvasRenderingContext2D, p: Pose) {
   const hh = p.hb / 2;
   const hw = hh * ASP;
   if (hh <= 0.4) return;
@@ -357,7 +341,14 @@ function drawMochi(x: CanvasRenderingContext2D, p: Pose) {
   drawHandL(x, hw, hh, p);
   drawHandR(x, hw, hh, p);
 
-  const body = mochiPath(hw, hh);
+  const t = performance.now() / 1000;
+  drawVoltAntenna(x, hw, hh, {
+    color: p.halo > 0.3 ? `rgb(${Math.round(255 * AMBER[0])},${Math.round(255 * AMBER[1])},${Math.round(255 * AMBER[2])})` : AMBER_DIM,
+    glow: p.halo > 0.3 ? hh * 0.4 * p.halo : 0,
+    sway: Math.sin(t * 1.3) * 0.08 + (p.wave >= 0 ? Math.sin(p.wave * 9) * 0.12 : 0),
+    alpha: 1,
+  });
+  const body = voltBodyPath(hw, hh);
   whiteFill(x, body, hw * 0.6, -hh, -hw * 0.6, hh);
 
   if (p.tint > 0) {
@@ -371,15 +362,18 @@ function drawMochi(x: CanvasRenderingContext2D, p: Pose) {
     x.restore();
   }
 
+  // Charge bar: fills up while Volt says hello
+  drawChargeBar(x, hw, hh, 0.25 + 0.75 * Math.min(1, p.halo), "rgb(255,176,32)");
+
   // Eyes
   x.save();
   x.clip(body);
   x.fillStyle = "#16171A";
   x.strokeStyle = "#16171A";
   const er = p.hb * 0.06;
-  const sp = p.hb * 0.19;
+  const sp = p.hb * 0.15;
   const lx = p.lookX * hw * 0.42;
-  const ly = p.lookY * hh * 0.28 + hh * 0.12 + p.eyeRoll * hh * 1.25;
+  const ly = p.lookY * hh * 0.22 - hh * 0.3 + p.eyeRoll * hh * 1.25;
   for (const sd of [-1, 1]) {
     x.save();
     x.translate(sd * sp + lx, ly);
@@ -473,7 +467,7 @@ function drawMinis(x: CanvasRenderingContext2D, alpha: number) {
     x.translate(cx + dx, cy + dy);
     x.scale(alpha, alpha);
     x.fillStyle = MINI_COLORS[i];
-    x.fill(mochiPath(5.3, 4));
+    x.fill(voltBodyPath(3.6, 4.4));
     x.restore();
   });
 }
@@ -561,6 +555,6 @@ export class Greeting {
     }
 
     drawMinis(x, p.minis);
-    drawMochi(x, p);
+    drawVolt(x, p);
   }
 }

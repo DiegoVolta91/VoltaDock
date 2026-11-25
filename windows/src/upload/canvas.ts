@@ -11,6 +11,7 @@ import {
   USC, eIn, eInOut, eOut, lerp, progressAt,
   type UploadEyeShape, type UploadFrame,
 } from "./sequence";
+import { AMBER_DIM, VOLT, drawChargeBar, drawVoltAntenna } from "../mochi/volt";
 
 const FONT = 'system-ui, "Segoe UI Variable Text", "Segoe UI", sans-serif';
 
@@ -21,23 +22,14 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
   ctx.roundRect(x, y, w, h, rad);
 }
 
-/** Superellipse body — port of usBodyPath(m, R). */
+/** Volt's battery case, widening into the box as `m` goes 0 → 1. */
 function bodyPath(ctx: CanvasRenderingContext2D, m: number, R: number): { rx: number; ry: number } {
   const mc = Math.max(0, Math.min(m, 1));
-  const n = 2.15 + (5.5 - 2.15) * mc;
-  const rx = R * (1.04 - 0.04 * mc);
+  const rx = R * lerp(VOLT.hw / VOLT.hh * 0.97, 1.0, mc);
   const ry = R * (0.97 - 0.03 * mc);
+  const r = Math.min(rx, ry) * lerp(VOLT.corner, 0.22, mc);
   ctx.beginPath();
-  for (let i = 0; i <= 96; i++) {
-    const a = (i / 96) * Math.PI * 2;
-    const ca = Math.cos(a);
-    const sa = Math.sin(a);
-    const px = rx * Math.sign(ca) * Math.pow(Math.abs(ca), 2 / n);
-    const py = ry * Math.sign(sa) * Math.pow(Math.abs(sa), 2 / n);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
+  ctx.roundRect(-rx, -ry, rx * 2, ry * 2, r);
   return { rx, ry };
 }
 
@@ -300,7 +292,10 @@ export class UploadCanvas {
     ctx.rotate(f.tilt);
     ctx.scale(f.sx, f.sy);
 
+    // Cap and bolt, fading out as Volt turns into the box.
     const { rx, ry } = bodyPath(ctx, f.morph, R);
+    drawVoltAntenna(ctx, rx, ry, { color: AMBER_DIM, glow: 0, sway: f.tilt * -0.8, alpha: 1 - mc * 2 });
+    bodyPath(ctx, f.morph, R); // the antenna call used its own path; restore the body
 
     // Body.
     const bg = ctx.createLinearGradient(rx * 0.7, -ry * 0.9, -rx * 0.8, ry * 0.9);
@@ -358,11 +353,14 @@ export class UploadCanvas {
       }
     }
 
+    // Charge bar, gone once the box is open.
+    if (mc < 0.34) drawChargeBar(ctx, rx, ry, 0.5, "rgb(255,176,32)", 1 - mc * 3);
+
     // Eyes.
-    const ew = R * 0.25;
-    const eh = R * (0.62 - 0.16 * mc);
-    const ey = R * (0.02 + 0.28 * mc);
-    const sp = R * 0.3;
+    const ew = R * 0.22;
+    const eh = R * (0.46 - 0.1 * mc);
+    const ey = R * (-0.3 + 0.6 * mc);
+    const sp = R * 0.26;
     const lx = f.lookX * R * (0.34 - 0.08 * mc);
     const ly = f.lookY * R * (0.16 - 0.09 * mc);
     for (const sd of [-1, 1]) {
