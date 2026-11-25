@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - Volt
 // VoltaDock's character: a small battery with a lightning-bolt antenna, drawn in
-// code. Same proportions and colours as windows/src/mochi/volt.ts (and the Mac's
-// VoltShape.swift once it lands); this is a lighter version of the island's
+// code. Same proportions and colours as windows/src/mochi/volt.ts and
+// NotchBuddy/Sources/App/VoltShape.swift; this is a lighter version of the island's
 // engine — breathing, blinking, a swaying bolt and a charge bar — enough for a
 // status screen.
 
